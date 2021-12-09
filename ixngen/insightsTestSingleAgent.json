@@ -1,0 +1,202 @@
+[
+  {
+    "id": "s1",
+    "name": "Setup - all agents busy",
+    "parties": [
+      {"identity": "agt1", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "Inb-Q1-Abd",
+    "name": "Inbound Single Q Abd",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          },
+          {"action": "release", "after": "dialed", "wait": 15}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Inb-Q2-Abd",
+    "name": "Multi Q Abd",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"2\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          },
+          {"action": "release", "after": "dialed", "wait": 30}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s2",
+    "name": "Setup - agt1 Available",
+    "parties": [
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "activity", "name": "Available"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Inb-Q0-Agt1-Rlse",
+    "name": "Agent Answer and Customer Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          },
+          {"action": "release", "after": "agt1.accepted", "wait": 20}
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Inb-Q0-Agt1-AgtRlse",
+    "name": "Agent Answer and Agent Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "release", "after": "accepted", "wait": 10},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Inb-Q0-Agt1-Hold-AgtRlse",
+    "name": "Agent Answer, Hold, Unhold and Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "hold", "after": "accepted", "wait": 5},
+          {"action": "unhold", "after": "held", "wait": 5},
+          {"action": "release", "after": "retrieved", "wait": 5},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Inb-Q0-Agt1-AgtRlse-Rsn=Success",
+    "name": "Agent Answer, Attach Data and Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "attach", "after": "accepted", "wait": 5, "data": "{\"reason\":\"success\"}"},
+          {"action": "release", "after": "accepted", "wait": 10},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s3",
+    "name": "Setup - all agents busy",
+    "parties": [
+      {"identity": "agt1", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "Inb-Q1-Agt1-Rlse",
+    "name": "Agent Answer from Q1 and Customer Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          },
+          {"action": "release", "after": "agt1.accepted", "wait": 20}
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "activity", "name": "Available", "after": "cust.dialed", "wait": 15},
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s4",
+    "name": "Setup - all agents busy",
+    "parties": [
+      {"identity": "agt1", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "Inb-Q2-Agt1-Rlse",
+    "name": "Agent Answer from Q2 and Customer Release",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+16292091380", "to": "+15072747105",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          },
+          {"action": "release", "after": "agt1.accepted", "wait": 20}
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "activity", "name": "Available", "after": "cust.dialed", "wait": 30},
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      }
+    ]
+  }
+]

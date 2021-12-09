@@ -1,0 +1,78 @@
+[
+  {
+    "id": "s1",
+    "name": "Setup - all agents busy",
+    "parties": [
+      {"identity": "agt1", "steps": [{"action": "activity", "name": "Busy"}]},
+      {"identity": "agt2", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "t1",
+    "name": "Single Q Abd",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995"},
+          {"action": "twiml", "request": 1, "response": "<Say>one</Say>"},
+          {"action": "release", "after":  0, "wait": 15}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "t2",
+    "name": "Multi Q Abd",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995"},
+          {"action": "twiml", "request": 1, "response": "<Say>two</Say>"},
+          {"action": "release", "after":  0, "wait": 45}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "t3",
+    "name": "Single Q Timeout",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995"},
+          {"action": "twiml", "request": 1, "response": "<Say>one</Say>"},
+          {"action": "release", "after":  0, "wait": 75}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "t4",
+    "name": "Multi Q Timeout",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995"},
+          {"action": "twiml", "request": 1, "response": "<Say>two</Say>"},
+          {"action": "release", "after":  0, "wait": 75}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s2",
+    "name": "Setup - agt1 Available",
+    "parties": [
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "activity", "name": "Available"}
+        ]
+      }
+    ]
+  }
+]

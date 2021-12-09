@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+design.txt
+notes.txt
+launch.json
+tmp/
+*.log
+*.env

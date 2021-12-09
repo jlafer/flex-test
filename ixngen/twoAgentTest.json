@@ -1,0 +1,136 @@
+[
+  {
+    "id": "s1",
+    "name": "Setup - agt1 available and agt2 busy",
+    "parties": [
+      {"identity": "agt1", "steps": [{"action": "activity", "name": "Available"}]},
+      {"identity": "agt2", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "t1",
+    "name": "Agt-1 Answer and Cold Transfer to Agt-2",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {
+            "action": "transfer",
+            "after": "accepted", "wait": 10,
+            "targetType": "agent", "targetName": "agt2", "mode": "COLD"
+          },
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      },
+      {
+        "identity": "agt2",
+        "steps": [
+          {"action": "activity", "name": "Available", "wait": 20},
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "release", "after": "accepted", "wait": 10},
+          {"action": "complete", "after": "ended", "wait": 10}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s2",
+    "name": "Setup - agt2 busy",
+    "parties": [
+      {"identity": "agt2", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "t2",
+    "name": "Agt-1 Answer and Warm Transfer to Agt-2",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {
+            "action": "transfer",
+            "after": "accepted", "wait": 10,
+            "targetType": "agent", "targetName": "agt2", "mode": "WARM"
+          },
+          {
+            "action": "unhold", "party": "cust",
+            "after": "consult-started", "wait": 15
+          },
+          {"action": "release", "after": "conference-started", "wait": 10},
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      },
+      {
+        "identity": "agt2",
+        "steps": [
+          {"action": "activity", "name": "Available", "wait": 20},
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "release", "after": "accepted", "wait": 40},
+          {"action": "complete", "after": "ended", "wait": 7}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "s3",
+    "name": "Setup - agt2 busy",
+    "parties": [
+      {"identity": "agt2", "steps": [{"action": "activity", "name": "Busy"}]}
+    ]
+  },
+  {
+    "id": "t3",
+    "name": "Cold Transfer with Different Outcome Values",
+    "parties": [
+      {
+        "identity": "cust",
+        "steps": [
+          {"action": "dial", "from": "+15202104646", "to": "+15205100995",
+            "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
+          }
+        ]
+      },
+      {
+        "identity": "agt1",
+        "steps": [
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "attach", "after": "accepted", "wait": 5, "data": "{\"outcome\":\"outcome 1\"}"},
+          {
+            "action": "transfer",
+            "after": "accepted", "wait": 10,
+            "targetType": "agent", "targetName": "agt2", "mode": "COLD"
+          },
+          {"action": "complete", "after": "ended", "wait": 5}
+        ]
+      },
+      {
+        "identity": "agt2",
+        "steps": [
+          {"action": "activity", "name": "Available", "wait": 20},
+          {"action": "accept", "after": "alerted", "wait": 3},
+          {"action": "attach", "after": "accepted", "wait": 5, "data": "{\"outcome\":\"outcome 2\"}"},
+          {"action": "release", "after": "accepted", "wait": 10},
+          {"action": "complete", "after": "ended", "wait": 10}
+        ]
+      }
+    ]
+  }
+]

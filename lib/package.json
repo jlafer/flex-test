@@ -1,0 +1,40 @@
+{
+  "name": "jlafer-insights-testing",
+  "version": "1.0.5",
+  "description": "My Insights testing helpers",
+  "main": "dist/bundle.cjs.js",
+  "module": "dist/bundle.esm.js",
+  "browser": "dist/bundle.umd.js",
+  "engines": {
+    "node": ">=8.2.0"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": "git+https://github.com/jlafer/jlafer-insights-testing.git",
+  "keywords": [],
+  "author": "jlafer",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.4.4",
+    "@babel/preset-env": "^7.4.4",
+    "@rollup/plugin-babel": "^5.3.0",
+    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.6",
+    "babel-jest": "^27.4.2",
+    "jest": "^27.4.3",
+    "rollup": "^2.60.2"
+  },
+  "dependencies": {
+    "axios": "^0.24.0",
+    "moment": "^2.24.0",
+    "ramda": "^0.26.1",
+    "twilio-sync": "^0.12.2"
+  }
+}

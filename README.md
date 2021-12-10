@@ -1,9 +1,21 @@
 # ixngen
 
-`ixngen` is a CLI app that acts as the server and coordinator of `flex-test`. It processes a suite of test cases and communicates with the clients, which act as the participants in the tests. Those clients include `ixngen-cust` and the `plugin-insights-testing` Flex plugin.
+This project is an Express server app that supports Flex UI and Insights testing. The app provides the server side of a tool for executing a suite of Flex test cases. The client side of the tool is one or more Flex UI clients that have loaded the Flex Insights testing plugin (plugin-insights-testing).
+
+While the test cases are owned and manged by ixngen, the suite execution must be initiated by a request from one of the Flex UI clients. The Flex plugin provides a button by which the tester can manually start the test suite. This is the only manual step required for test suite execution.
+
+This server and the client(s) communicate and coordinate the execution of the test suite via a Sync map. This allows the clients, for example, to let ixngen know when they put a call on hold or when an agent has changed state.
+Conversely, ixngen uses the Sync map to pass test case definitions to the clients and instruct them to take actions, such as to change agent-state.
+
+One client must start the test suite by setting the `status` item to `started` in the map. Once started, the server and clients exchange syncmap updates to advance through the test cases.
+
+The definition of the test cases and the required instructions to clients are specified in a server-side JSON file.
+
+Following test suite execution, expected results are posted to a CSV file. Actual results include both the observed behavior of the clients and actual results data written to Flex Insights. The xxxxxxxxxxxxxxx report can be used to generate a CSV file of actual results for comparison with the expected results.
 
 ## Installation
 
+    Clone or download this repo into a new folder.
     npm install
 
 ## Configuration

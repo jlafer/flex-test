@@ -43,16 +43,7 @@ const getLog = () => {
   return logger;
 }
 
-const verifyRequiredEnvVars = (env, varNames) => {
-  varNames.forEach(varName => {
-    if (!env[varName]) {
-      throw new Error(`required environment variable - ${varName} - is missing from .env file`);
-    }
-  })
-};
-
 module.exports = {
   initLog,
-  getLog,
-  verifyRequiredEnvVars
+  getLog
 };

@@ -3,8 +3,9 @@
   It shows how arguments are defined, using the 'commander' package.
 */
 const pgm = require('commander');
-require('dotenv').config();
-const {initLog, verifyRequiredEnvVars} = require('./src/debugUtil');
+require('dotenv').config({ path:'../.env' });
+const {initLog} = require('./src/debugUtil');
+const {verifyRequiredEnvVars} = require('../lib');
 const logLevel = process.env.LOG_LEVEL || 'info';
 const log = initLog('ixngen', logLevel);
 log.info('started ixngen');

@@ -1,21 +1,21 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express = require('express');
 const {urlencoded} = require('body-parser');
 const R = require('ramda');
 const {initLog} = require('./debugUtil');
 const log = initLog('ixngen-cust', 'debug');
 
-const {getSyncClientAndMap} = require('jlafer-insights-testing');
+const {getSyncClientAndMap} = require('../../lib');
 const tokenGenerator = require('./token-generator');
 const {syncMapUpdated, startTest, stepUpdate} = require('./process');
 
-const config = require('./cfg');
+require('./cfg');
 
 // TODO this shd come from config.js
-const {HOST, PORT, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN} = process.env;
+const {IXNGEN_CUST_HOST, IXNGEN_CUST_PORT, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN} = process.env;
 const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
-const context = {agtName: 'cust', client, host: HOST, port: PORT};
+const context = {agtName: 'cust', client, host: IXNGEN_CUST_HOST, port: IXNGEN_CUST_PORT};
 const state = {context};
 const tokenResponse = tokenGenerator('cust');
 getSyncClientAndMap(startTest(state), syncMapUpdated(state), 'TestSteps', tokenResponse);
@@ -48,6 +48,6 @@ const callStatusHandler = R.curry((state, req, res) => {
 
 app.post('/callstatus', callStatusHandler(state));
 
-app.listen(PORT, function () {
-  log.info(`listening on port ${PORT}!`);
+app.listen(IXNGEN_CUST_PORT, function () {
+  log.info(`listening on port ${IXNGEN_CUST_PORT}!`);
 });

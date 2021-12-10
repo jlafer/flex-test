@@ -1,5 +1,5 @@
 const R = require('ramda');
-const {sendChannelStatus, setSyncMapItem} = require('jlafer-insights-testing');
+const {sendChannelStatus, setSyncMapItem} = require('../../lib');
 
 const K = require('./constants');
 const {getLog} = require('./debugUtil');

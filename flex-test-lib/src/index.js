@@ -2,7 +2,8 @@
 import * as R from 'ramda';
 //import SyncClient from "twilio-sync";
 
-import {terminateProcess} from './misc';
+import {terminateProcess} from './misc-util';
+import {generateSyncToken} from './sync-util';
 
 // NOTE: these pkgs must be required - not imported
 const axios = require('axios');
@@ -66,6 +67,7 @@ const verifyRequiredEnvVars = (env, varNames) => {
 };
 
 export {
+  generateSyncToken,
   getSyncToken,
   getSyncClientAndMap,
   setSyncMapItem,

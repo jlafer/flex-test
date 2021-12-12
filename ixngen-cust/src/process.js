@@ -1,12 +1,13 @@
 import * as R from 'ramda';
-import {sendChannelStatus, setSyncMapItem} from 'flex-test-lib';
+import {
+  sendChannelStatus, setSyncMapItem, terminateProcess
+} from 'flex-test-lib';
 
 import logger from './logUtil';
 const log = logger.getInstance();
 
 import K from './constants';
 import {dial, release} from './voice';
-import terminateProcess from './terminateProcess';
 
 const getSteps = (agtName, command) => {
   const party = command.parties.find(party => party.identity === agtName);

@@ -1,4 +1,5 @@
-import Twilio from 'twilio';
+//import Twilio from 'twilio';
+const Twilio = require('twilio');
 
 // access token used for Video, IP Messaging and Sync
 const AccessToken = Twilio.jwt.AccessToken;
@@ -13,7 +14,7 @@ const SyncGrant = AccessToken.SyncGrant;
  *         {Object.identity} String random identity
  *         {Object.token} String token generated
  */
-export function tokenGenerator(config, identity = 0) {
+export function generateSyncToken(config, identity = 0) {
   // create an access token which we will sign
   const token = new AccessToken(
     config.TWILIO_ACCOUNT_SID,

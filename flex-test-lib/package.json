@@ -21,20 +21,22 @@
   "author": "jlafer",
   "license": "MIT",
   "devDependencies": {
-    "@babel/core": "^7.4.4",
-    "@babel/preset-env": "^7.4.4",
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-commonjs": "^21.0.1",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.6",
     "babel-jest": "^27.4.2",
     "jest": "^27.4.3",
-    "rollup": "^2.60.2"
+    "rollup": "^2.61.1"
   },
   "dependencies": {
     "axios": "^0.24.0",
     "moment": "^2.24.0",
     "ramda": "^0.26.1",
+    "twilio": "^3.71.3",
     "twilio-sync": "^0.12.2"
   }
 }

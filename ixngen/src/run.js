@@ -1,12 +1,11 @@
 import * as R from 'ramda';
 import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
-import {terminateProcess} from 'flex-test-lib';
+import {generateSyncToken, terminateProcess} from 'flex-test-lib';
 
 import logger from './logUtil';
 const log = logger.getInstance();
 import K from './constants';
 import {getSyncClientAndMap, setSyncMapItem} from './sync-helpers';
-import {tokenGenerator} from './token-generator';
 import {verifyAndFillDefaults} from './commands';
 import {getCmdPartiesReducer, addManualDefaults} from './helpers';
 
@@ -237,7 +236,7 @@ const syncMapUpdated = R.curry((initData, _map, event) => {
 });
 
 function execute(config, initData) {
-  const tokenResponse = tokenGenerator(config, 'ixngen');
+  const tokenResponse = generateSyncToken(config, 'ixngen');
   initData.syncClient = getSyncClientAndMap(
     readyTheTest(initData),
     syncMapUpdated(initData),

@@ -1,6 +1,6 @@
-//require("dotenv").config();
 import * as R from 'ramda';
 import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
+import {terminateProcess} from 'flex-test-lib';
 
 import logger from './logUtil';
 const log = logger.getInstance();
@@ -9,7 +9,6 @@ import {getSyncClientAndMap, setSyncMapItem} from './sync-helpers';
 import {tokenGenerator} from './token-generator';
 import {verifyAndFillDefaults} from './commands';
 import {getCmdPartiesReducer, addManualDefaults} from './helpers';
-import terminateProcess from './terminateProcess';
 
 const replaceArrItem = R.curry((key, arr, item) =>
   arr.map(obj => (obj[key] === item[key]) ? item : obj)

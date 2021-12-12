@@ -1,8 +1,6 @@
-require("dotenv").config();
-const R = require('ramda');
-const {getOrCreateSyncMap} = require('./sync');
+import * as R from 'ramda';
 
-const getCmdPartiesReducer = (idsAccum, command) => {
+export const getCmdPartiesReducer = (idsAccum, command) => {
   const cmdIds = command.parties.map(R.prop('identity'));
   return cmdIds.reduce(
     (accum, id) => R.contains(id, accum) ? accum : [...accum, id],
@@ -28,9 +26,4 @@ const addManualDefaultsToParty = (party) => {
 const addManualDefaultsToCmd = (cmd) => {
   return {...cmd, parties: R.map(addManualDefaultsToParty, cmd.parties)};
 };
-const addManualDefaults = (cmds) => R.map(addManualDefaultsToCmd, cmds);
-
-module.exports = {
-  getCmdPartiesReducer,
-  addManualDefaults
-}
+export const addManualDefaults = (cmds) => R.map(addManualDefaultsToCmd, cmds);

@@ -1,9 +1,7 @@
-require("dotenv").config();
-const R = require('ramda');
-const {fnInit} = require('./helpers');
-const {removeSyncMap} = require('./sync');
-const {getLog} = require('./debugUtil');
-const log = getLog();
+import {fnInit} from './helpers';
+import {removeSyncMap} from './sync';
+import logger from './logUtil';
+const log = logger.getInstance();
 
 async function init(args) {
   return fnInit(args);
@@ -25,6 +23,4 @@ const clearFn = (args) => {
     .then(initData => execute(initData));
 };
 
-module.exports = {
-  clearFn
-};
+export default clearFn;

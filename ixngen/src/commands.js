@@ -1,11 +1,9 @@
-//const {valueIsArray} = require('fnal-util');
-const Ajv = require('ajv');
-const {getLog} = require('./debugUtil');
-
-const log = getLog();
+import Ajv from 'ajv';
+import logger from './logUtil';
+const log = logger.getInstance();
 
 // NOTE: mutates the cmds parameter by adding default values
-const verifyAndFillDefaults = (cmds) => {
+export const verifyAndFillDefaults = (cmds) => {
   const schema = {
     type: "array",
     items: {
@@ -121,7 +119,3 @@ const verifyAndFillDefaults = (cmds) => {
     log.error(validate.errors);
   return valid;
 }
-
-module.exports = {
-  verifyAndFillDefaults
-};

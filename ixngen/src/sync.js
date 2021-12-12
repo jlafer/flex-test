@@ -1,25 +1,25 @@
-const R = require('ramda');
-const {getLog} = require('./debugUtil');
-const log = getLog();
+import * as R from 'ramda';
+import logger from './logUtil';
+const log = logger.getInstance();
 
-function getSyncMapByName(client, svcSid, name) {
+export function getSyncMapByName(client, svcSid, name) {
   return client.sync.services(svcSid).syncMaps.list()
   .then(syncMaps => syncMaps.find(map => map.uniqueName === name))
 }
 
-function createSyncMap(client, svcSid, name) {
+export function createSyncMap(client, svcSid, name) {
   return client.sync.services(svcSid)
   .syncMaps
   .create({uniqueName: name})
 }
 
-function removeSyncMap(client, svcSid, syncMap) {
+export function removeSyncMap(client, svcSid, syncMap) {
   client.sync.services(svcSid)
   .syncMaps(syncMap.sid)
   .remove()
 }
 
-function getOrCreateSyncMap(client, svcSid, name) {
+export function getOrCreateSyncMap(client, svcSid, name) {
   return getSyncMapByName(client, svcSid, name)
   .then(map => {
     if (map)
@@ -29,28 +29,28 @@ function getOrCreateSyncMap(client, svcSid, name) {
   })
 }
 
-function getSyncMapItem(client, svcSid, syncMapSid, key) {
+export function getSyncMapItem(client, svcSid, syncMapSid, key) {
   return client.sync.services(svcSid)
   .syncMaps(syncMapSid)
   .syncMapItems(key)
   .fetch()
 }
 
-function createSyncMapItem(client, svcSid, syncMapSid, item) {
+export function createSyncMapItem(client, svcSid, syncMapSid, item) {
   return client.sync.services(svcSid)
   .syncMaps(syncMapSid)
   .syncMapItems
   .create(item)
 }
 
-function updateSyncMapItem(client, svcSid, syncMapSid, key, data) {
+export function updateSyncMapItem(client, svcSid, syncMapSid, key, data) {
   return client.sync.services(svcSid)
   .syncMaps(syncMapSid)
   .syncMapItems(key)
   .update(data)
 }
 
-function setSyncMapItem(client, svcSid, syncMapSid, item) {
+export function setSyncMapItem(client, svcSid, syncMapSid, item) {
   log.debug('setSyncMapItem: setting item: ', item);
   return updateSyncMapItem(client, svcSid, syncMapSid, item.key, R.dissoc(['key'], item))
   .catch(err => {
@@ -61,15 +61,4 @@ function setSyncMapItem(client, svcSid, syncMapSid, item) {
     log.debug('setSyncMapItem: create failed with:', err);
     return err;
   })
-}
-
-module.exports = {
-  createSyncMap,
-  getSyncMapByName,
-  removeSyncMap,
-  getOrCreateSyncMap,
-  createSyncMapItem,
-  getSyncMapItem,
-  setSyncMapItem,
-  updateSyncMapItem
 }

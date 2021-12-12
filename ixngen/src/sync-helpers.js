@@ -1,10 +1,9 @@
-const SyncClient = require('twilio-sync');
-const R = require('ramda');
-const K = require('./constants');
-const {getLog} = require('./debugUtil');
-const log = getLog();
+import SyncClient from 'twilio-sync';
+import * as R from 'ramda';
+import logger from './logUtil';
+const log = logger.getInstance();
 
-const setSyncMapItem = (map, key, data, ttl) => {
+export const setSyncMapItem = (map, key, data, ttl) => {
   return map.set(key, data, {ttl})
   .then(function(item) {
     log.debug('setSyncMapItem successful');
@@ -15,7 +14,7 @@ const setSyncMapItem = (map, key, data, ttl) => {
   });
 };
 
-const getSyncClientAndMap = R.curry((mapCallback, itemCallback, data) => {
+export const getSyncClientAndMap = R.curry((mapCallback, itemCallback, data) => {
   const options = {
     logLevel: "info"
   };
@@ -34,8 +33,3 @@ const getSyncClientAndMap = R.curry((mapCallback, itemCallback, data) => {
 
   return client;
 });
-
-module.exports = {
-  getSyncClientAndMap,
-  setSyncMapItem
-}

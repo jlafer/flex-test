@@ -21,10 +21,12 @@ const getSyncToken = (url, identity, handler) => {
 };
 
 const getSyncClientAndMap = R.curry((mapCallback, itemCallback, mapName, data) => {
+  console.log('getSyncClientAndMap: entered');
   const options = {
     logLevel: "info"
   };
   const client = new SyncClient(data.token, options);
+  console.log('getSyncClientAndMap: initiated connection');
 
   client.on("connectionStateChanged", state => {
     console.log('getSyncClientAndMap.connectionState: ', {state});

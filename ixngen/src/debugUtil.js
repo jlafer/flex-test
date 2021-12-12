@@ -1,4 +1,5 @@
-const { createLogger, format, transports } = require('winston');
+import { createLogger, format, transports } from 'winston';
+
 const { combine, timestamp, printf } = format;
 
 let logger;
@@ -10,7 +11,7 @@ const myFormat = printf(({ level, message, timestamp, metadata }) => {
     return `${timestamp} ${message} ${JSON.stringify(metadata)}`;
 });
 
-const initLog = (name, level) => {
+export const initLog = (name, level) => {
   logger = createLogger({
     level: level,
     format: combine(
@@ -39,11 +40,6 @@ const initLog = (name, level) => {
   return logger;
 };
 
-const getLog = () => {
+export const getLog = () => {
   return logger;
 }
-
-module.exports = {
-  initLog,
-  getLog
-};

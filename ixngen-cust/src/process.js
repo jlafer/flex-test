@@ -1,12 +1,12 @@
-const R = require('ramda');
-const {sendChannelStatus, setSyncMapItem} = require('../../lib');
+import * as R from 'ramda';
+import {sendChannelStatus, setSyncMapItem} from 'flex-test-lib';
 
-const K = require('./constants');
-const {getLog} = require('./debugUtil');
-const {dial, release} = require('./voice');
-const terminateProcess = require('./terminateProcess');
+import logger from './logUtil';
+const log = logger.getInstance();
 
-const log = getLog();
+import K from './constants';
+import {dial, release} from './voice';
+import terminateProcess from './terminateProcess';
 
 const getSteps = (agtName, command) => {
   const party = command.parties.find(party => party.identity === agtName);

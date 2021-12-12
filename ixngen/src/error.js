@@ -1,4 +1,4 @@
-module.exports = (message, exit) => {
+export default function(message, exit) {
   console.error(message);
   exit && process.exit(1);
 }

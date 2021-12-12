@@ -10,6 +10,8 @@
     "ixngen": "bin/ixngen"
   },
   "scripts": {
+    "build": "babel src --out-dir dist --source-maps",
+    "start": "npm run build && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "jlafer",
@@ -18,15 +20,23 @@
     "ajv": "^6.12.2",
     "axios": "^0.18.0",
     "body-parser": "^1.19.0",
-    "commander": "^2.19.0",
+    "commander": "^8.3.0",
     "dotenv": "^7.0.0",
     "express": "^4.17.1",
     "jlafer-node-util": "^1.0.5",
     "moment": "^2.24.0",
     "ora": "^3.4.0",
     "ramda": "^0.26.1",
+    "source-map-support": "^0.5.21",
     "twilio": "^3.39",
     "twilio-sync": "^0.12.2",
     "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.16.0",
+    "@babel/plugin-transform-runtime": "^7.16.4",
+    "@babel/preset-env": "^7.16.4",
+    "babel-plugin-source-map-support": "^2.1.3"
   }
 }

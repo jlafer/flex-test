@@ -1,6 +1,6 @@
 {
-  "name": "jlafer-insights-testing",
-  "version": "1.0.5",
+  "name": "flex-test-lib",
+  "version": "0.0.1",
   "description": "My Insights testing helpers",
   "main": "dist/bundle.cjs.js",
   "module": "dist/bundle.esm.js",

@@ -1,16 +1,15 @@
-require("dotenv").config();
-const moment = require('moment');
-const R = require('ramda');
-const {openFile, readJsonFile, writeToFile} = require('jlafer-node-util');
+//require("dotenv").config();
+import * as R from 'ramda';
+import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
 
-const {getLog} = require('./debugUtil');
-const log = getLog();
-const K = require('./constants');
-const {getSyncClientAndMap, setSyncMapItem} = require('./sync-helpers');
-const tokenGenerator = require('./token-generator');
-const {verifyAndFillDefaults} = require('./commands');
-const {getCmdPartiesReducer, addManualDefaults} = require('./helpers');
-const terminateProcess = require('./terminateProcess');
+import logger from './logUtil';
+const log = logger.getInstance();
+import K from './constants';
+import {getSyncClientAndMap, setSyncMapItem} from './sync-helpers';
+import {tokenGenerator} from './token-generator';
+import {verifyAndFillDefaults} from './commands';
+import {getCmdPartiesReducer, addManualDefaults} from './helpers';
+import terminateProcess from './terminateProcess';
 
 const replaceArrItem = R.curry((key, arr, item) =>
   arr.map(obj => (obj[key] === item[key]) ? item : obj)
@@ -238,8 +237,8 @@ const syncMapUpdated = R.curry((initData, _map, event) => {
   processUpdate(initData, key, data);
 });
 
-function execute(initData) {
-  const tokenResponse = tokenGenerator('ixngen');
+function execute(config, initData) {
+  const tokenResponse = tokenGenerator(config, 'ixngen');
   initData.syncClient = getSyncClientAndMap(
     readyTheTest(initData),
     syncMapUpdated(initData),
@@ -249,7 +248,9 @@ function execute(initData) {
 }
 
 async function init(files, args) {
-  const {acct, auth, indir, tests} = args;
+  const {indir, tests} = args;
+  log.debug(`init: indir=${indir}`);
+  log.debug(`init: tests=${tests}`);
   const initData = {};
   initData.results = [];
   // TODO support all files in array
@@ -282,17 +283,15 @@ function terminate(args, initData) {
   }); */
 }
 
-const runFn = (files, args) => {
+const runFn = R.curry((config, files, args) => {
   return init(files, args)
-    .then(initData => execute(initData))
+    .then(initData => execute(config, initData))
     .then(initData => terminate(args, initData))
     .catch(err => reportError(err));
-};
+});
 
 const reportError = (err) => {
   log.error(err);
 };
 
-module.exports = {
-  runFn
-};
+export default runFn;

@@ -1,23 +1,26 @@
-//require('dotenv').config();
-const express = require('express');
-const {urlencoded} = require('body-parser');
-const R = require('ramda');
-const {initLog} = require('./debugUtil');
-const log = initLog('ixngen-cust', 'debug');
+import 'source-map-support/register';
+import express from 'express';
+import {urlencoded} from 'body-parser';
+import * as R from 'ramda';
 
-const {getSyncClientAndMap} = require('../../lib');
-const tokenGenerator = require('./token-generator');
-const {syncMapUpdated, startTest, stepUpdate} = require('./process');
+import config from './cfgEnv';
+console.log('config:', config);
+const {IXNGEN_CUST_HOST, IXNGEN_CUST_PORT, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN} = config;
 
-require('./cfg');
+import logger from './logUtil';
+const log = logger.getInstance();
 
-// TODO this shd come from config.js
-const {IXNGEN_CUST_HOST, IXNGEN_CUST_PORT, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN} = process.env;
+import {getSyncClientAndMap} from 'flex-test-lib';
+import {tokenGenerator} from './token-generator';
+import {syncMapUpdated, startTest, stepUpdate} from './process';
+
+log.debug(`TWILIO_ACCOUNT_SID = ${TWILIO_ACCOUNT_SID}`);
+
 const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 const context = {agtName: 'cust', client, host: IXNGEN_CUST_HOST, port: IXNGEN_CUST_PORT};
 const state = {context};
-const tokenResponse = tokenGenerator('cust');
+const tokenResponse = tokenGenerator(config, 'cust');
 getSyncClientAndMap(startTest(state), syncMapUpdated(state), 'TestSteps', tokenResponse);
 
 const app = express();

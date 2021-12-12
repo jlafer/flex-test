@@ -1,4 +1,4 @@
-export default function(message, exit) {
+export default function(message, code) {
   console.log(message);
-  exit && process.exit(0);
+  process.exit(code);
 }

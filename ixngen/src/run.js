@@ -199,7 +199,7 @@ const processUpdate = async (initData, key, update) => {
       initData.syncMap.close();
       //TODO write out stats in CSV for easy comparison with Insights
       log.info('STATS:', {stats: initData.state.stats});
-      terminateProcess('test completed', true);
+      terminateProcess('test completed', 0);
     }
   /*} catch (err) {
     log.error('Error in processUpdate', {err});

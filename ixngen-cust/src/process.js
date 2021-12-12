@@ -188,7 +188,7 @@ const processMessage = (state, data) => {
       if (testStatus === K.TEST_STATUS_STARTED)
         processCommand(state, command);
       if (testStatus === K.TEST_STATUS_ENDED)
-        terminateProcess('test completed', true);
+        terminateProcess('test completed', 0);
       break;
     case K.OP_CHANNEL_STATUS:
       processChannelStatus(state, source, channel, status);

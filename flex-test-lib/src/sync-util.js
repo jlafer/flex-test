@@ -1,4 +1,4 @@
-//import Twilio from 'twilio';
+const SyncClient = require('twilio-sync');
 const Twilio = require('twilio');
 
 // access token used for Video, IP Messaging and Sync
@@ -35,3 +35,29 @@ export function generateSyncToken(config, identity = 0) {
     token: token.toJwt()
   };
 }
+
+export const getSyncClient = ( {callback = noOpFn, token, options = {logLevel: "info"}} ) => {
+  const client = new SyncClient(token, options);
+  client.on("connectionStateChanged", callback);
+  return client;
+};
+
+export const subscribeToSyncMap = ( {client, id, ttl = 1800, mapCallback, itemCallback} ) => {
+  client.map({id, ttl}).then(map => {
+    map.on("itemAdded", itemCallback(map));
+    map.on("itemUpdated", itemCallback(map));
+    mapCallback(map);
+  });
+};
+
+function noOpFn(_state) {};
+
+export const setSyncMapItem = (map, key, data, ttl) => {
+  map.set(key, data, {ttl})
+  .then(function(item) {
+    //console.log('setSyncMapItem successful');
+  })
+  .catch(function(error) {
+    console.error('setSyncMapItem failed', error);
+  });
+};

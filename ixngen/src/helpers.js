@@ -3,27 +3,27 @@ import * as R from 'ramda';
 export const getCmdPartiesReducer = (idsAccum, command) => {
   const cmdIds = command.parties.map(R.prop('identity'));
   return cmdIds.reduce(
-    (accum, id) => R.contains(id, accum) ? accum : [...accum, id],
+    (accum, id) => R.includes(id, accum) ? accum : [...accum, id],
     idsAccum
   );
 };
 
-const addSourceIfMissing = R.curry((source, after) => {
+const addSelfAsSourcePartyIfMissing = R.curry((self, after) => {
   return (after)
-    ? R.includes('.', after) ? after : `${source}.${after}`
+    ? R.includes('.', after) ? after : `${self}.${after}`
     : undefined;
 });
-const addManualDefaultsToStep = R.curry((party, step) =>
+const addOtherDefaultsToStep = R.curry((party, step) =>
   R.over(
     R.lensProp('after'),
-    addSourceIfMissing(party.identity),
+    addSelfAsSourcePartyIfMissing(party.identity),
     step
   )
 );
-const addManualDefaultsToParty = (party) => {
-  return {...party, steps: R.map(addManualDefaultsToStep(party), party.steps)};
+const addOtherDefaultsToParty = (party) => {
+  return {...party, steps: R.map(addOtherDefaultsToStep(party), party.steps)};
 };
-const addManualDefaultsToCmd = (cmd) => {
-  return {...cmd, parties: R.map(addManualDefaultsToParty, cmd.parties)};
+const addOtherDefaultsToCmd = (cmd) => {
+  return {...cmd, parties: R.map(addOtherDefaultsToParty, cmd.parties)};
 };
-export const addManualDefaults = (cmds) => R.map(addManualDefaultsToCmd, cmds);
+export const addOtherDefaults = (cmds) => R.map(addOtherDefaultsToCmd, cmds);

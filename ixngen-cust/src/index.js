@@ -10,7 +10,7 @@ const {IXNGEN_CUST_HOST, IXNGEN_CUST_PORT, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
 import logger from './logUtil';
 const log = logger.getInstance();
 
-import {generateSyncToken, getSyncClientAndMap} from 'flex-test-lib';
+import {generateSyncToken, getSyncClient, subscribeToSyncMap} from 'flex-test-lib';
 import {syncMapUpdated, startTest, stepUpdate} from './process';
 
 log.debug(`TWILIO_ACCOUNT_SID = ${TWILIO_ACCOUNT_SID}`);
@@ -20,7 +20,14 @@ const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 const context = {agtName: 'cust', client, host: IXNGEN_CUST_HOST, port: IXNGEN_CUST_PORT};
 const state = {context};
 const tokenResponse = generateSyncToken(config, 'cust');
-getSyncClientAndMap(startTest(state), syncMapUpdated(state), 'TestSteps', tokenResponse);
+const syncClient = getSyncClient({token: tokenResponse.token});
+log.debug(`got sync client`);
+subscribeToSyncMap({
+  client: syncClient,
+  id: 'TestSteps',
+  mapCallback: startTest(state),
+  itemCallback: syncMapUpdated(state),
+});
 
 const app = express();
 app.use(urlencoded({ extended: false }));

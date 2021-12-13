@@ -199,23 +199,25 @@ const processMessage = (state, data) => {
   }
 }
 
-const syncMapUpdated = R.curry((state, event) => {
+const syncMapUpdated = R.curry((state, _map, args) => {
   const {context} = state;
   const {agtName} = context;
-  //log.debug('syncMapUpdated:', {item: event.item});
-  const {key, data} = event.item.descriptor;
+  const {item, isLocal} = args;
+  const {key, data} = item;
   log.debug(`syncMapUpdated: key=${key}`, {data});
   // ignore the messages not intended for this client
   if (! ['all', agtName].includes(key) )
     return;
   // ignore the messages this client sends
-  if (data.source === agtName)
+  //if (data.source === agtName)
+  if (isLocal)
     return;
   processMessage(state, data);
 });
 
 const startTest = R.curry((state, map) => {
   const {context} = state;
+  //log.debug('startTest:', {context: context});
   const {agtName} = context;
   context.syncMap = map;
   const data = {source: agtName, op: K.OP_START, startTime: new Date()};
@@ -235,7 +237,7 @@ function delayedPromise(mSec) {
   );
 };
 
-module.exports = {
+export {
   delayedPromise,
   startTest,
   syncMapUpdated,

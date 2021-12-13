@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "babel src --out-dir dist --source-maps",
-    "start": "npm run build && node dist/index.js",
+    "start": "npm run build && node --trace-warnings dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

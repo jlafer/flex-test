@@ -1,20 +1,14 @@
-/*
-  This module defines the command(s) supported by the CLI program.
-*/
 import 'source-map-support/register';
 import {Command} from 'commander';
-import {verifyRequiredEnvVars} from 'lib';
+import {verifyRequiredEnvVars} from 'flex-test-lib';
 
 import config from './cfgEnv';
-
 import logger from './logUtil';
-const log = logger.getInstance();
-
 import clear from './clear';
 import run from './run';
 
+const log = logger.getInstance();
 log.info('started ixngen');
-log.debug(`TWILIO_ACCOUNT_SID = ${config.TWILIO_ACCOUNT_SID}`);
 
 verifyRequiredEnvVars(
   config,
@@ -22,7 +16,6 @@ verifyRequiredEnvVars(
 );
 
 const pgm = new Command();
-
 pgm.version('0.0.1');
 
 pgm
@@ -40,7 +33,4 @@ pgm
 .option('-i, --indir <dir>', 'input directory')
 .action(clear);
 
-// parse the command line and pass arguments into the correct "action" function
 pgm.parse(process.argv);
-
-//export default pgm;

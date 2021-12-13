@@ -1,13 +1,16 @@
 import * as R from 'ramda';
 import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
-import {generateSyncToken, terminateProcess} from 'flex-test-lib';
+import {
+  generateSyncToken, getSyncClient, setSyncMapItem, subscribeToSyncMap,
+  terminateProcess
+} from 'flex-test-lib';
 
 import logger from './logUtil';
-const log = logger.getInstance();
 import K from './constants';
-import {getSyncClientAndMap, setSyncMapItem} from './sync-helpers';
 import {verifyAndFillDefaults} from './commands';
-import {getCmdPartiesReducer, addManualDefaults} from './helpers';
+import {getCmdPartiesReducer, addOtherDefaults} from './helpers';
+
+const log = logger.getInstance();
 
 const replaceArrItem = R.curry((key, arr, item) =>
   arr.map(obj => (obj[key] === item[key]) ? item : obj)
@@ -226,53 +229,57 @@ const readyTheTest = R.curry((initData, map) => {
 });
 
 const syncMapUpdated = R.curry((initData, _map, event) => {
-  //log.debug('syncMapUpdated:', {item: event.item});
   const {key, data} = event.item.descriptor;
-  log.info(`syncMapUpdated: key=${key}:`, {data});
+  log.debug(`syncMapUpdated: key=${key}:`, {data});
   // ignore the messages this client sends or forwards
   if (data.source === 'ixngen')
     return;
   processUpdate(initData, key, data);
 });
 
-function execute(config, initData) {
-  const tokenResponse = generateSyncToken(config, 'ixngen');
-  initData.syncClient = getSyncClientAndMap(
-    readyTheTest(initData),
-    syncMapUpdated(initData),
-    tokenResponse
-  );
-  return initData;
-}
+const runFn = R.curry((config, files, args) => {
+  return prepareTestCommands(files, args)
+    .then(initData => executeTest(config, initData))
+    .then(initData => outputTestResults(args, initData))
+    .catch(log.error);
+});
 
-async function init(files, args) {
+async function prepareTestCommands(files, args) {
   const {indir, tests} = args;
-  log.debug(`init: indir=${indir}`);
-  log.debug(`init: tests=${tests}`);
-  const initData = {};
-  initData.results = [];
+  log.debug(`prepareTestCommands: indir=${indir}`);
+  log.debug(`prepareTestCommands: tests=${tests}`);
+  const initData = {results: []};
+
   // TODO support all files in array
   const testSuite = await readJsonFile(`${indir}/${files[0]}`);
-  let selectedTests;
-  if (tests) {
-    const testIds = tests.split(',');
-    selectedTests = testSuite.filter(test => testIds.includes(test.id));
-  }
-  else
-    selectedTests = testSuite; 
-  if (selectedTests.length == 0)
+  const selectedTests = (tests)
+    ? getUserSelectedTests(testSuite, tests)
+    : testSuite;
+  if ( R.isEmpty(selectedTests) )
     throw new Error('no commands specified; --tests correctly formatted?');
   const valid = verifyAndFillDefaults(selectedTests);
   if (!valid)
-    throw new Error('validation of commands failed');
-  initData.testSuite = addManualDefaults(selectedTests);
-  log.debug('init: testSuite:', {testSuite: initData.testSuite});
+    throw new Error('validation of test commands failed');
+  initData.testSuite = addOtherDefaults(selectedTests);
+  log.debug('prepareTestCommands: testSuite:', {testSuite: initData.testSuite});
   return initData;
 }
 
-function terminate(args, initData) {
+function executeTest(config, initData) {
+  const tokenResponse = generateSyncToken(config, 'ixngen');
+  initData.syncClient = getSyncClient({token: tokenResponse.token});
+  subscribeToSyncMap({
+    client: initData.syncClient,
+    id: 'TestSteps',
+    mapCallback: readyTheTest(initData),
+    itemCallback: syncMapUpdated(initData),
+  });
+  return initData;
+}
+
+function outputTestResults(args, initData) {
   const {results} = initData;
-  log.debug('terminate called');
+  log.debug('outputTestResults called');
   /* const {outdir} = args;
   const fd = await openFile(`${outdir}/ixngen-out.txt`, 'w');
   results.forEach(async test => {
@@ -281,15 +288,9 @@ function terminate(args, initData) {
   }); */
 }
 
-const runFn = R.curry((config, files, args) => {
-  return init(files, args)
-    .then(initData => execute(config, initData))
-    .then(initData => terminate(args, initData))
-    .catch(err => reportError(err));
-});
-
-const reportError = (err) => {
-  log.error(err);
-};
+function getUserSelectedTests(testSuite, tests) {
+  const testIds = tests.split(',');
+  return testSuite.filter(test => testIds.includes(test.id));
+}
 
 export default runFn;

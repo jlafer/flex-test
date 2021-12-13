@@ -1,4 +1,4 @@
-// changes
+// state changes
 const CHG_CHANNEL_STATUS = 'CHANNEL_STATUS';
 const CHG_CLIENT_READY = 'CLIENT_READY';
 const CHG_END_COMMAND = 'END_COMMAND';

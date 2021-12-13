@@ -12,33 +12,135 @@ import {getCmdPartiesReducer, addOtherDefaults} from './helpers';
 
 const log = logger.getInstance();
 
-const replaceArrItem = R.curry((key, arr, item) =>
-  arr.map(obj => (obj[key] === item[key]) ? item : obj)
-);
-const replaceParty = replaceArrItem('identity');
+const runFn = R.curry((config, files, args) => {
+  prepareTestCommands(files, args)
+    .then(initData => executeTest(config, initData))
+    .then(initData => outputTestResults(args, initData))
+    .catch(log.error);
+});
 
-const getParty = (parties, key) => parties.find(party => party.identity === key);
+async function prepareTestCommands(files, args) {
+  const {indir, tests} = args;
+  log.debug(`prepareTestCommands: indir=${indir} tests=${tests}`);
+  const initData = {results: []};
+  // TODO support all files in array
+  const testSuite = await readJsonFile(`${indir}/${files[0]}`);
+  const selectedTests = (tests)
+    ? getUserSelectedTests(testSuite, tests)
+    : testSuite;
+  if ( R.isEmpty(selectedTests) )
+    throw new Error('no commands specified; --tests correctly formatted?');
+  const valid = verifyAndFillDefaults(selectedTests);
+  if (!valid)
+    throw new Error('validation of test commands failed');
+  initData.testSuite = addOtherDefaults(selectedTests);
+  log.debug('prepareTestCommands: testSuite:', {testSuite: initData.testSuite});
+  return initData;
+}
 
-const allPartiesDone = (parties) => R.all(
-  party => (party.status === K.PARTY_STATUS_ENDED),
-  parties
-);
+function executeTest(config, initData) {
+  const tokenResponse = generateSyncToken(config, 'ixngen');
+  initData.syncClient = getSyncClient({token: tokenResponse.token});
+  subscribeToSyncMap({
+    client: initData.syncClient,
+    id: 'TestSteps',
+    mapCallback: readyTheTest(initData),
+    itemCallback: syncMapUpdated(initData),
+  });
+  return initData;
+}
+
+function outputTestResults(_args, initData) {
+  const {results} = initData;
+  log.debug('outputTestResults: ', {results});
+  /* const {outdir} = args;
+  const fd = await openFile(`${outdir}/ixngen-out.txt`, 'w');
+  results.forEach(async test => {
+    log.debug('writing result: ', {test});
+    await writeToFile(fd, `${test}\n`);
+  }); */
+}
+
+const readyTheTest = R.curry((initData, map) => {
+  initData.syncMap = map;
+  const data = {
+    op: K.OP_STATUS, testStatus: K.TEST_STATUS_PENDING, source: 'ixngen'
+  };
+  setSyncMapItem(map, 'all', data, 300);
+  initializeTestState(initData);
+});
+
+const syncMapUpdated = R.curry((initData, _map, args) => {
+  log.debug(`syncMapUpdated:`, {args});
+  const {item, isLocal} = args;
+  // ignore the messages this client sends or forwards
+  if (isLocal)
+    return;
+  log.debug(`syncMapUpdated:`, {item});
+  // NOTE: 'descriptor' is not documented; perhaps this is bcos i'm using
+  // the JS client SDK in Node.js, which may not be fully supported
+  const {key, data} = item.descriptor;
+  log.debug(`syncMapUpdated: key=${key}:`, {data});
+  if (data.source === 'ixngen')
+    return;
+  processSyncMsgFromClient(initData, key, data);
+});
+
+const processSyncMsgFromClient = async (initData, key, update) => {
+  const {testSuite, state} = initData;
+  const change = getChangeToState(testSuite, state, key, update);
+  log.info('changeToState:', {change});
+  initData.state = {...initData.state, ...change.data};
+  log.info(`state after applying change ${change.type}:`, {state: initData.state});
+  await respondToClientMsg(initData, change);
+  if (initData.state.testStatus === K.TEST_STATUS_ENDED) {
+    initData.syncMap.close();
+    //TODO write out stats in CSV for easy comparison with Insights
+    log.info('STATS:', {stats: initData.state.stats});
+    terminateProcess('test completed', 0);
+  }
+};
+
+const getChangeToState = (testSuite, state, key, update) => {
+  const {op} = update;
+  switch (op) {
+    case K.OP_START:
+      return getStateChangeFromClientReady(testSuite, state, key, update);
+    case K.OP_CHANNEL_STATUS:
+      return getStateChangeFromChannelStatus(state, key, update);
+    case K.OP_PROGRESS:
+      return getStateChangeFromProgress(testSuite, state, key, update);
+    case K.OP_END:
+      return {...state, testStatus: K.TEST_STATUS_ENDED};
+    case K.OP_STATS:
+      return getStateChangeFromStats(state.stats, key, update);
+    default:
+      return state;
+  }
+};
+
+const respondToClientMsg = (initData, change) => {
+  const {state, syncMap} = initData;
+  const {key, data} = getResponseToClientMsg(state, change);
+  if (!! key)
+    setSyncMapItem(syncMap, key, data, 300);
+};
 
 // TODO make terminology consistent: start -> ready
-const getChangeFromClientReady = (testSuite, state, key, update) => {
+const getStateChangeFromClientReady = (testSuite, state, key, update) => {
   const party = {
     ...getParty(state.parties, key),
     status: K.PARTY_STATUS_STARTED,
     workerSid: update.workerSid
   };
-  log.debug('getChangeFromClientReady:', {party});
+  log.debug('getStateChangeFromClientReady:', {party});
   const parties = replaceParty(state.parties, party);
-  log.debug('getChangeFromClientReady:', {parties});
+  log.debug('getStateChangeFromClientReady:', {parties});
   const partiesAllStarted = R.all(
     party => (party.status === K.PARTY_STATUS_STARTED),
     parties
   );
-  log.debug('getChangeFromClientReady:', {partiesAllStarted});
+  log.debug('getStateChangeFromClientReady:', {partiesAllStarted});
   if (partiesAllStarted) {
     const command = testSuite[0];
     const cmdParties = R.map(R.prop('identity'), command.parties)
@@ -62,7 +164,7 @@ const getChangeFromClientReady = (testSuite, state, key, update) => {
     };
 };
 
-const getChangeFromProgress = (testSuite, state, key, update) => {
+const getStateChangeFromProgress = (testSuite, state, key, update) => {
   const party = {...getParty(state.cmdParties, key), status: K.PARTY_STATUS_ENDED};
   let cmdParties = replaceParty(state.cmdParties, party);
   if (! allPartiesDone(cmdParties))
@@ -92,7 +194,7 @@ const getChangeFromProgress = (testSuite, state, key, update) => {
     };
 };
 
-const getChangeFromChannelStatus = (state, key, update) => {
+const getStateChangeFromChannelStatus = (state, key, update) => {
   const {source, channel, status} = update;
   const channelStatuses = {...state.channelStatuses, [channel]: status};
   const party = {...getParty(state.cmdParties, key), channelStatuses};
@@ -104,7 +206,7 @@ const getChangeFromChannelStatus = (state, key, update) => {
   };
 };
 
-const getChangeFromStats = (stateStats, key, update) => {
+const getStateChangeFromStats = (stateStats, key, update) => {
   const {command, stats, endTime} = update;
   const stat = {command, party: key, stats, endTime};
   return {
@@ -113,29 +215,11 @@ const getChangeFromStats = (stateStats, key, update) => {
   };
 };
 
-const getChangeToState = (testSuite, state, key, update) => {
-  const {op} = update;
-  switch (op) {
-    case K.OP_START:
-      return getChangeFromClientReady(testSuite, state, key, update);
-    case K.OP_CHANNEL_STATUS:
-      return getChangeFromChannelStatus(state, key, update);
-    case K.OP_PROGRESS:
-      return getChangeFromProgress(testSuite, state, key, update);
-    case K.OP_END:
-      return {...state, testStatus: K.TEST_STATUS_ENDED};
-    case K.OP_STATS:
-      return getChangeFromStats(state.stats, key, update);
-    default:
-      return state;
-  }
-};
-
 /**
  NOTE: 'state' has already been updated by changes driving this response
    so be careful when using it in this function
 */
-const getResponse = (state, change) => {
+const getResponseToClientMsg = (state, change) => {
   const {parties} = state;
   const {type, data, command, channelStatus} = change;
   switch (type) {
@@ -180,39 +264,7 @@ const getResponse = (state, change) => {
   }
 };
 
-const doResponse = async (initData, change) => {
-  const {state, syncMap} = initData;
-  const {key, data} = getResponse(state, change);
-  if (! key)
-    return;
-  await setSyncMapItem(syncMap, key, data, 300);
-};
-
-const processUpdate = async (initData, key, update) => {
-  //try {
-    const {testSuite, state} = initData;
-    const change = getChangeToState(testSuite, state, key, update);
-    log.info('changeToState:', {change});
-    initData.state = {...initData.state, ...change.data};
-    log.info(`state after applying change ${change.type}:`, {state: initData.state});
-    await doResponse(initData, change);
-    if (initData.state.testStatus === K.TEST_STATUS_ENDED) {
-      initData.syncMap.close();
-      //TODO write out stats in CSV for easy comparison with Insights
-      log.info('STATS:', {stats: initData.state.stats});
-      terminateProcess('test completed', 0);
-    }
-  /*} catch (err) {
-    log.error('Error in processUpdate', {err});
-  }*/
-};
-
-const readyTheTest = R.curry((initData, map) => {
-  initData.syncMap = map;
-  const data = {
-    op: K.OP_STATUS, testStatus: K.TEST_STATUS_PENDING, source: 'ixngen'
-  };
-  setSyncMapItem(map, 'all', data, 300);
+const initializeTestState = (initData) => {
   const partyIds = initData.testSuite.reduce(getCmdPartiesReducer, []);
   log.debug('readyTheTest:', {partyIds});
   const parties = partyIds.map((identity) => ({
@@ -226,67 +278,19 @@ const readyTheTest = R.curry((initData, map) => {
     parties,
     stats: []
   };
-});
+};
 
-const syncMapUpdated = R.curry((initData, _map, event) => {
-  const {key, data} = event.item.descriptor;
-  log.debug(`syncMapUpdated: key=${key}:`, {data});
-  // ignore the messages this client sends or forwards
-  if (data.source === 'ixngen')
-    return;
-  processUpdate(initData, key, data);
-});
+const replaceArrItem = R.curry((key, arr, item) =>
+  arr.map(obj => (obj[key] === item[key]) ? item : obj)
+);
+const replaceParty = replaceArrItem('identity');
 
-const runFn = R.curry((config, files, args) => {
-  return prepareTestCommands(files, args)
-    .then(initData => executeTest(config, initData))
-    .then(initData => outputTestResults(args, initData))
-    .catch(log.error);
-});
+const getParty = (parties, key) => parties.find(party => party.identity === key);
 
-async function prepareTestCommands(files, args) {
-  const {indir, tests} = args;
-  log.debug(`prepareTestCommands: indir=${indir}`);
-  log.debug(`prepareTestCommands: tests=${tests}`);
-  const initData = {results: []};
-
-  // TODO support all files in array
-  const testSuite = await readJsonFile(`${indir}/${files[0]}`);
-  const selectedTests = (tests)
-    ? getUserSelectedTests(testSuite, tests)
-    : testSuite;
-  if ( R.isEmpty(selectedTests) )
-    throw new Error('no commands specified; --tests correctly formatted?');
-  const valid = verifyAndFillDefaults(selectedTests);
-  if (!valid)
-    throw new Error('validation of test commands failed');
-  initData.testSuite = addOtherDefaults(selectedTests);
-  log.debug('prepareTestCommands: testSuite:', {testSuite: initData.testSuite});
-  return initData;
-}
-
-function executeTest(config, initData) {
-  const tokenResponse = generateSyncToken(config, 'ixngen');
-  initData.syncClient = getSyncClient({token: tokenResponse.token});
-  subscribeToSyncMap({
-    client: initData.syncClient,
-    id: 'TestSteps',
-    mapCallback: readyTheTest(initData),
-    itemCallback: syncMapUpdated(initData),
-  });
-  return initData;
-}
-
-function outputTestResults(args, initData) {
-  const {results} = initData;
-  log.debug('outputTestResults called');
-  /* const {outdir} = args;
-  const fd = await openFile(`${outdir}/ixngen-out.txt`, 'w');
-  results.forEach(async test => {
-    log.debug('writing result: ', {test});
-    await writeToFile(fd, `${test}\n`);
-  }); */
-}
+const allPartiesDone = (parties) => R.all(
+  party => (party.status === K.PARTY_STATUS_ENDED),
+  parties
+);
 
 function getUserSelectedTests(testSuite, tests) {
   const testIds = tests.split(',');

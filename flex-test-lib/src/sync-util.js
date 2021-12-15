@@ -1,9 +1,22 @@
 const SyncClient = require('twilio-sync');
 const Twilio = require('twilio');
 
-// access token used for Video, IP Messaging and Sync
-const AccessToken = Twilio.jwt.AccessToken;
-const SyncGrant = AccessToken.SyncGrant;
+// NOTE: axios must be required - not imported
+const axios = require('axios');
+
+export const getSyncToken = (url, identity, handler) => {
+  axios.get(`${url}?Identity=${identity}`, {
+    headers: {
+      Accept: "application/json"
+    }
+  })
+  .then(resp => {
+    handler(resp.data);
+  })
+  .catch(function (error) {
+    console.log(error);
+  })
+};
 
 /**
  * generate an access token for an application user - it generates a random
@@ -15,21 +28,18 @@ const SyncGrant = AccessToken.SyncGrant;
  *         {Object.token} String token generated
  */
 export function generateSyncToken(config, identity = 0) {
-  // create an access token which we will sign
+  const AccessToken = Twilio.jwt.AccessToken;
+  const SyncGrant = AccessToken.SyncGrant;
   const token = new AccessToken(
     config.TWILIO_ACCOUNT_SID,
     config.TWILIO_API_KEY,
     config.TWILIO_API_SECRET
   );
-
   token.identity = identity;
-
   const syncGrant = new SyncGrant({
     serviceSid: config.TWILIO_SYNC_SERVICE_SID || 'default'
   });
   token.addGrant(syncGrant);
-
-  // serialize the token to a JWT string
   return {
     identity: token.identity,
     token: token.toJwt()

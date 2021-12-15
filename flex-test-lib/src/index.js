@@ -9,40 +9,12 @@ import {
   STEP_STATUS_READY, STEP_STATUS_STARTED, STEP_STATUS_ENDED,
   TEST_STATUS_PENDING, TEST_STATUS_READY, TEST_STATUS_STARTED, TEST_STATUS_ENDED
 } from './constants';
-import {getParty, terminateProcess} from './misc-util';
 import {
-  generateSyncToken, getSyncClient, subscribeToSyncMap, setSyncMapItem
+  getParty, sendChannelStatus, terminateProcess, verifyRequiredEnvVars
+} from './misc-util';
+import {
+  generateSyncToken, getSyncClient, getSyncToken, subscribeToSyncMap, setSyncMapItem
 } from './sync-util';
-
-// NOTE: these pkgs must be required - not imported
-const axios = require('axios');
-
-const getSyncToken = (url, identity, handler) => {
-  axios.get(`${url}?Identity=${identity}`, {
-    headers: {
-      Accept: "application/json"
-    }
-  })
-  .then(resp => {
-    handler(resp.data);
-  })
-  .catch(function (error) {
-    console.log(error);
-  })
-};
-
-const sendChannelStatus = ({syncMap, agtName, channel, status}) => {
-  const data = {op: 'CHANNEL_STATUS', source: agtName, channel, status}
-  setSyncMapItem(syncMap, 'all', data, 300);
-};
-
-const verifyRequiredEnvVars = (env, varNames) => {
-  varNames.forEach(varName => {
-    if (!env[varName]) {
-      throw new Error(`required environment variable - ${varName} - is missing from .env file`);
-    }
-  })
-};
 
 export {
   ACTION_ACCEPT, ACTION_ACTIVITY, ACTION_ATTACH, ACTION_COMPLETE, ACTION_DIAL,
@@ -55,11 +27,11 @@ export {
   STEP_STATUS_READY, STEP_STATUS_STARTED, STEP_STATUS_ENDED,
   TEST_STATUS_PENDING, TEST_STATUS_READY, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
   generateSyncToken,
-  getSyncToken,
   getSyncClient,
-  getParty,
+  getSyncToken,
   subscribeToSyncMap,
   setSyncMapItem,
+  getParty,
   sendChannelStatus,
   terminateProcess,
   verifyRequiredEnvVars

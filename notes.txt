@@ -1,0 +1,6 @@
+Time-sucking Errors
+- plugin-insights-testing would not start up properly; a JS console message states
+  that "ke is not a constructor"; still havent figured out the cause but it was
+  occurring in call to 'getSyncClientAndMap'; was happening when using deployed
+  plugin and went away when i switched back to local dev server on port 3000
+- 

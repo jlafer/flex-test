@@ -2,13 +2,16 @@ import * as R from 'ramda';
 import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
 import {
   generateSyncToken, getSyncClient, setSyncMapItem, subscribeToSyncMap,
-  terminateProcess
+  getParty, terminateProcess
 } from 'flex-test-lib';
+import {findObjByKeyVal, replaceObjByKey} from 'jlafer-lib';
 
 import logger from './logUtil';
 import K from './constants';
 import {verifyAndFillDefaults} from './commands';
-import {getCmdPartiesReducer, addOtherDefaults} from './helpers';
+import {
+  getCmdPartiesReducer, addOtherDefaults
+} from './helpers';
 
 const log = logger.getInstance();
 
@@ -92,7 +95,7 @@ const processSyncMsgFromClient = async (initData, key, update) => {
   log.info('changeToState:', {change});
   initData.state = {...initData.state, ...change.data};
   log.info(`state after applying change ${change.type}:`, {state: initData.state});
-  await respondToClientMsg(initData, change);
+  respondToClientMsg(initData, change);
   if (initData.state.testStatus === K.TEST_STATUS_ENDED) {
     initData.syncMap.close();
     //TODO write out stats in CSV for easy comparison with Insights
@@ -129,7 +132,7 @@ const respondToClientMsg = (initData, change) => {
 // TODO make terminology consistent: start -> ready
 const getStateChangeFromClientReady = (testSuite, state, key, update) => {
   const party = {
-    ...getParty(state.parties, key),
+    ...getParty(key, state.parties),
     status: K.PARTY_STATUS_STARTED,
     workerSid: update.workerSid
   };
@@ -165,7 +168,7 @@ const getStateChangeFromClientReady = (testSuite, state, key, update) => {
 };
 
 const getStateChangeFromProgress = (testSuite, state, key, update) => {
-  const party = {...getParty(state.cmdParties, key), status: K.PARTY_STATUS_ENDED};
+  const party = {...getParty(key, state.cmdParties), status: K.PARTY_STATUS_ENDED};
   let cmdParties = replaceParty(state.cmdParties, party);
   if (! allPartiesDone(cmdParties))
     return {
@@ -197,7 +200,7 @@ const getStateChangeFromProgress = (testSuite, state, key, update) => {
 const getStateChangeFromChannelStatus = (state, key, update) => {
   const {source, channel, status} = update;
   const channelStatuses = {...state.channelStatuses, [channel]: status};
-  const party = {...getParty(state.cmdParties, key), channelStatuses};
+  const party = {...getParty(key, state.cmdParties), channelStatuses};
   const cmdParties = replaceParty(state.cmdParties, party);
   return {
     type: K.CHG_CHANNEL_STATUS,
@@ -280,12 +283,7 @@ const initializeTestState = (initData) => {
   };
 };
 
-const replaceArrItem = R.curry((key, arr, item) =>
-  arr.map(obj => (obj[key] === item[key]) ? item : obj)
-);
-const replaceParty = replaceArrItem('identity');
-
-const getParty = (parties, key) => parties.find(party => party.identity === key);
+const replaceParty = replaceObjByKey('identity');
 
 const allPartiesDone = (parties) => R.all(
   party => (party.status === K.PARTY_STATUS_ENDED),

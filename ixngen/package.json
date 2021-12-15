@@ -23,6 +23,7 @@
     "commander": "^8.3.0",
     "dotenv": "^7.0.0",
     "express": "^4.17.1",
+    "jlafer-lib": "0.0.5",
     "jlafer-node-util": "^1.0.5",
     "moment": "^2.24.0",
     "ora": "^3.4.0",

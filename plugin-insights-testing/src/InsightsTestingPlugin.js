@@ -194,7 +194,7 @@ const syncMapUpdated = R.curry((flex, manager, myStore, event) => {
 });
 
 const syncMapSet = R.curry((myStore, map) => {
-  //log.debug('getSyncClientAndMap: opened map:', map.sid);
+  //log.debug('syncMapSet: opened map:', map.sid);
   myStore.dispatch({type: A.SYNCMAP_SET, payload: {syncMap: map}});
   map.get('all')
   .then(item => {

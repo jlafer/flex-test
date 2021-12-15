@@ -1,16 +1,102 @@
 import * as R from 'ramda';
 import {
-  sendChannelStatus, setSyncMapItem, terminateProcess
+  getParty, sendChannelStatus, setSyncMapItem, terminateProcess
 } from 'flex-test-lib';
 
 import logger from './logUtil';
 const log = logger.getInstance();
 
 import K from './constants';
+import { delayedPromise } from './helpers';
 import {dial, release} from './voice';
 
+export const syncMapUpdated = R.curry((state, _map, args) => {
+  const {context} = state;
+  const {agtName} = context;
+  log.debug(`syncMapUpdated:`, {args});
+  const {item, isLocal} = args;
+  log.debug(`syncMapUpdated:`, {item});
+  // ignore the messages this client sends
+  if (isLocal)
+    return;
+  const {key, data} = item.descriptor;
+  log.debug(`syncMapUpdated: key=${key}`, {data});
+  // ignore the messages not intended for this client
+  if (! ['all', agtName].includes(key) )
+    return;
+  processSyncMsgFromOtherParty(state, data);
+});
+
+export const startTest = R.curry((state, map) => {
+  const {context} = state;
+  const {agtName} = context;
+  context.syncMap = map;
+  const data = {source: agtName, op: K.OP_START, startTime: new Date()};
+  return setSyncMapItem(map, agtName, data, 300);
+});
+
+export const stepUpdate = (state, update) => {
+  if (cmdComplete(state)) {
+    log.debug(`stepUpdate: ignoring update because command is complete`);
+    return;
+  }
+  const step = state.steps[state.stepIdx];
+  log.debug(`stepUpdate: received status ${update.status} for`, {step});
+  switch (step.action) {
+    case K.ACTION_DIAL:
+      dialStatusUpdate(state, update);
+      break;
+    case K.ACTION_RELEASE:
+      releaseStatusUpdate(state, update);
+      break;
+    default:
+      break;
+  }
+
+  if (stepComplete(state)) {
+    log.debug('stepUpdate: step is complete');
+    const nextIdx = state.stepIdx + 1;
+    const nextStep = (state.steps.length > nextIdx) ? state.steps[nextIdx] : null;
+    if (nextStep) {
+      state.stepIdx = nextIdx;
+      state.stepStatus = K.STEP_STATUS_READY;
+      if (! nextStep.after) {
+        log.debug('stepUpdate: it has no condition so will execute it')
+        execNextStep(state);
+      }
+      else
+        log.debug(`stepUpdate: it has a condition (${nextStep.after}) that we will wait on`);
+    }
+    else {
+      sendCmdCompleted(state);
+      state.cmdStatus = K.CMD_STATUS_ENDED;
+    }
+  }
+}
+
+const processSyncMsgFromOtherParty = (state, data) => {
+  const {source, op, command, step, channel, status, testStatus} = data;
+  switch (op) {
+    case K.OP_COMMAND:
+      processCommand(state, command);
+      break;
+    case K.OP_STATUS:
+      log.debug(`op: status ${testStatus} received`);
+      if (testStatus === K.TEST_STATUS_STARTED)
+        processCommand(state, command);
+      if (testStatus === K.TEST_STATUS_ENDED)
+        terminateProcess('test completed', 0);
+      break;
+    case K.OP_CHANNEL_STATUS:
+      processChannelStatus(state, source, channel, status);
+      break;
+    default:
+      log.debug(`processSyncMsgFromOtherParty: unexpected op received: ${op}?`);
+  }
+}
+
 const getSteps = (agtName, command) => {
-  const party = command.parties.find(party => party.identity === agtName);
+  const party = getParty(agtName, command.parties);
   return (party) ? party.steps : null;
 };
 
@@ -26,8 +112,6 @@ const sendCmdCompleted = (state) => {
   };
   return setSyncMapItem(syncMap, agtName, data, 300);
 };
-
-const stepsRemain = (state) => (state.stepIdx < state.steps.length);
 
 const execStep = (state) => {
   const {context, callSid, command, steps, stepIdx} = state;
@@ -96,45 +180,6 @@ const releaseStatusUpdate = (state, update) => {
 const stepComplete = (state) => state.stepStatus === K.STEP_STATUS_ENDED;
 const cmdComplete = (state) => state.cmdStatus === K.CMD_STATUS_ENDED;
 
-const stepUpdate = (state, update) => {
-  if (cmdComplete(state)) {
-    log.debug(`stepUpdate: ignoring update because command is complete`);
-    return;
-  }
-  const step = state.steps[state.stepIdx];
-  log.debug(`stepUpdate: received status ${update.status} for`, {step});
-  switch (step.action) {
-    case K.ACTION_DIAL:
-      dialStatusUpdate(state, update);
-      break;
-    case K.ACTION_RELEASE:
-      releaseStatusUpdate(state, update);
-      break;
-    default:
-      break;
-  }
-
-  if (stepComplete(state)) {
-    log.debug('stepUpdate: step is complete');
-    const nextIdx = state.stepIdx + 1;
-    const nextStep = (state.steps.length > nextIdx) ? state.steps[nextIdx] : null;
-    if (nextStep) {
-      state.stepIdx = nextIdx;
-      state.stepStatus = K.STEP_STATUS_READY;
-      if (! nextStep.after) {
-        log.debug('stepUpdate: it has no condition so will execute it')
-        execNextStep(state);
-      }
-      else
-        log.debug(`stepUpdate: it has a condition (${nextStep.after}) that we will wait on`);
-    }
-    else {
-      sendCmdCompleted(state);
-      state.cmdStatus = K.CMD_STATUS_ENDED;
-    }
-  }
-}
-
 // WARNING: impure: mutates state! I did this since Express callback is passed state
 // and I don't know how to pass it the latest copy of state
 const setCmdInState = (state, command) => {
@@ -150,7 +195,7 @@ const setCmdInState = (state, command) => {
 const processCommand = (state, command) => {
   const {context} = state;
   const {agtName} = context;
-  const party = command.parties.find(party => party.identity === agtName);
+  const party = getParty(agtName, command.parties);
   // if we're not a party to this command, ignore it
   if (party == null)
     return;
@@ -177,69 +222,3 @@ const startTimers = (state, source, channel, status) => {
 const processChannelStatus = (state, source, channel, status) => {
   startTimers(state, source, channel, status);
 };
-
-const processMessage = (state, data) => {
-  const {source, op, command, step, channel, status, testStatus} = data;
-  switch (op) {
-    case K.OP_COMMAND:
-      processCommand(state, command);
-      break;
-    case K.OP_STATUS:
-      log.debug(`op: status ${testStatus} received`);
-      if (testStatus === K.TEST_STATUS_STARTED)
-        processCommand(state, command);
-      if (testStatus === K.TEST_STATUS_ENDED)
-        terminateProcess('test completed', 0);
-      break;
-    case K.OP_CHANNEL_STATUS:
-      processChannelStatus(state, source, channel, status);
-      break;
-    default:
-      log.debug(`processMessage: unexpected op received: ${op}?`);
-  }
-}
-
-const syncMapUpdated = R.curry((state, _map, args) => {
-  const {context} = state;
-  const {agtName} = context;
-  log.debug(`syncMapUpdated:`, {args});
-  const {item, isLocal} = args;
-  log.debug(`syncMapUpdated:`, {item});
-  // ignore the messages this client sends
-  if (isLocal)
-    return;
-  const {key, data} = item.descriptor;
-  log.debug(`syncMapUpdated: key=${key}`, {data});
-  // ignore the messages not intended for this client
-  if (! ['all', agtName].includes(key) )
-    return;
-  processMessage(state, data);
-});
-
-const startTest = R.curry((state, map) => {
-  const {context} = state;
-  const {agtName} = context;
-  context.syncMap = map;
-  const data = {source: agtName, op: K.OP_START, startTime: new Date()};
-  return setSyncMapItem(map, agtName, data, 300);
-});
-
-function delayedPromise(mSec) {
-  return new Promise(
-    function(resolve, _reject) {
-      setTimeout(
-        function() {
-          resolve(mSec);
-        },
-        mSec
-      );
-    }
-  );
-};
-
-export {
-  delayedPromise,
-  startTest,
-  syncMapUpdated,
-  stepUpdate
-}

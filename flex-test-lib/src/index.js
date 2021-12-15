@@ -1,4 +1,4 @@
-import {terminateProcess} from './misc-util';
+import {getParty, terminateProcess} from './misc-util';
 import {
   generateSyncToken, getSyncClient, subscribeToSyncMap, setSyncMapItem
 } from './sync-util';
@@ -37,6 +37,7 @@ export {
   generateSyncToken,
   getSyncToken,
   getSyncClient,
+  getParty,
   subscribeToSyncMap,
   setSyncMapItem,
   sendChannelStatus,

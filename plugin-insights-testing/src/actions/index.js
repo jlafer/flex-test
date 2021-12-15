@@ -1,6 +1,9 @@
 import * as R from 'ramda';
 import {log} from 'jlafer-flex-util';
-import * as K from '../constants';
+import {
+  ACTION_ACCEPT, ACTION_ACTIVITY, ACTION_ATTACH, ACTION_COMPLETE,
+  ACTION_HOLD, ACTION_RELEASE, ACTION_TRANSFER, ACTION_UNHOLD,
+} from 'flex-test-lib';
 import {getSteps, getTargetSid, sendProgress, delayedPromise,
     addTestDataToTaskConversations}
 from '../helpers';
@@ -176,21 +179,21 @@ const unholdCall = (flex, state, _party) => {
 export function doStep(flex, state, step) {
   log.debug('doStep called with step:', step);
   switch (step.action) {
-    case K.ACTION_ATTACH:
+    case ACTION_ATTACH:
       return attachData(state, step.data);
-    case K.ACTION_ACTIVITY:
+    case ACTION_ACTIVITY:
       return setAgentState(flex, step.name);
-    case K.ACTION_ACCEPT:
+    case ACTION_ACCEPT:
       return acceptTask(flex, state);
-    case K.ACTION_HOLD:
+    case ACTION_HOLD:
       return holdCall(flex, state, step.party);
-    case K.ACTION_UNHOLD:
+    case ACTION_UNHOLD:
       return unholdCall(flex, state, step.party);
-    case K.ACTION_RELEASE:
+    case ACTION_RELEASE:
       return endTask(flex, state);
-    case K.ACTION_TRANSFER:
+    case ACTION_TRANSFER:
       return transferCall(flex, state, step.targetType, step.targetName, step.mode);
-    case K.ACTION_COMPLETE:
+    case ACTION_COMPLETE:
       return completeTask(flex, state);
     default:
       const msg = `doStep: unexpected step.action: ${step.action}`;

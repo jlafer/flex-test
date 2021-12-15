@@ -3,7 +3,7 @@ import {connect} from 'react-redux';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 import {log, setSyncMapItem} from 'jlafer-flex-util';
-import * as K from '../constants';
+import {OP_START, TEST_STATUS_PENDING} from 'flex-test-lib';
 
 class TestingDataForm extends React.Component {
   constructor(props) {
@@ -21,7 +21,7 @@ class TestingDataForm extends React.Component {
   }
 
   render() {
-    const testNotPending = (this.props.testStatus !== K.TEST_STATUS_PENDING);
+    const testNotPending = (this.props.testStatus !== TEST_STATUS_PENDING);
     log.debug('TestingDataForm: rendering');
     // TODO need to work on layout and styling
     return (
@@ -36,7 +36,7 @@ class TestingDataForm extends React.Component {
 }
 
 const startTest = (map, agtName, worker) => {
-  const data = {source: agtName, op: K.OP_START, workerSid: worker.sid, startTime: new Date()};
+  const data = {source: agtName, op: OP_START, workerSid: worker.sid, startTime: new Date()};
   setSyncMapItem(map, agtName, data, 300);
 };
 

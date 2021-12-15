@@ -3,7 +3,11 @@ import { VERSION } from '@twilio/flex-ui';
 import { FlexPlugin } from 'flex-plugin';
 import * as R from 'ramda';
 import {log, getSyncClientAndMap} from 'jlafer-flex-util';
-import * as K from './constants';
+//import * as K from './constants';
+import {
+  OP_COMMAND, OP_CHANNEL_STATUS, OP_STATUS, TEST_STATUS_STARTED
+} from 'flex-test-lib';
+
 import reducer, {namespace} from './reducers/flexStoreReducer';
 import TestingDataForm from './components/TestingDataForm';
 import configureStore from "./store/store";
@@ -176,16 +180,16 @@ const syncMapUpdated = R.curry((flex, manager, myStore, event) => {
   if (source === agtName)
     return;
   switch (op) {
-    case K.OP_COMMAND:
+    case OP_COMMAND:
       processCommand(flex, manager, myStore, state, command);
       break;
-    case K.OP_CHANNEL_STATUS:
+    case OP_CHANNEL_STATUS:
       processEvent(flex, myStore, source, channel, status);
       break;
-    case K.OP_STATUS:
+    case OP_STATUS:
       //log.debug('INFO: op: testStatus received');
       myStore.dispatch({type: A.TEST_STATUS_CHANGE, payload: {testStatus, parties}});
-      if (testStatus === K.TEST_STATUS_STARTED)
+      if (testStatus === TEST_STATUS_STARTED)
         processCommand(flex, manager, myStore, state, command);
       break;
     default:

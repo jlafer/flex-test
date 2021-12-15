@@ -1,12 +1,15 @@
 import * as R from 'ramda';
 import {
+  ACTION_DIAL, ACTION_RELEASE, ACTION_TWIML, OP_START, OP_COMMAND,
+  OP_CHANNEL_STATUS, OP_PROGRESS, OP_STATUS,
+  CMD_STATUS_STARTED, CMD_STATUS_ENDED, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
+  STEP_STATUS_READY, STEP_STATUS_STARTED, STEP_STATUS_ENDED,
   getParty, sendChannelStatus, setSyncMapItem, terminateProcess
 } from 'flex-test-lib';
 
 import logger from './logUtil';
 const log = logger.getInstance();
 
-import K from './constants';
 import { delayedPromise } from './helpers';
 import {dial, release} from './voice';
 
@@ -31,7 +34,7 @@ export const startTest = R.curry((state, map) => {
   const {context} = state;
   const {agtName} = context;
   context.syncMap = map;
-  const data = {source: agtName, op: K.OP_START, startTime: new Date()};
+  const data = {source: agtName, op: OP_START, startTime: new Date()};
   return setSyncMapItem(map, agtName, data, 300);
 });
 
@@ -43,10 +46,10 @@ export const stepUpdate = (state, update) => {
   const step = state.steps[state.stepIdx];
   log.debug(`stepUpdate: received status ${update.status} for`, {step});
   switch (step.action) {
-    case K.ACTION_DIAL:
+    case ACTION_DIAL:
       dialStatusUpdate(state, update);
       break;
-    case K.ACTION_RELEASE:
+    case ACTION_RELEASE:
       releaseStatusUpdate(state, update);
       break;
     default:
@@ -59,7 +62,7 @@ export const stepUpdate = (state, update) => {
     const nextStep = (state.steps.length > nextIdx) ? state.steps[nextIdx] : null;
     if (nextStep) {
       state.stepIdx = nextIdx;
-      state.stepStatus = K.STEP_STATUS_READY;
+      state.stepStatus = STEP_STATUS_READY;
       if (! nextStep.after) {
         log.debug('stepUpdate: it has no condition so will execute it')
         execNextStep(state);
@@ -69,7 +72,7 @@ export const stepUpdate = (state, update) => {
     }
     else {
       sendCmdCompleted(state);
-      state.cmdStatus = K.CMD_STATUS_ENDED;
+      state.cmdStatus = CMD_STATUS_ENDED;
     }
   }
 }
@@ -77,17 +80,17 @@ export const stepUpdate = (state, update) => {
 const processSyncMsgFromOtherParty = (state, data) => {
   const {source, op, command, step, channel, status, testStatus} = data;
   switch (op) {
-    case K.OP_COMMAND:
+    case OP_COMMAND:
       processCommand(state, command);
       break;
-    case K.OP_STATUS:
+    case OP_STATUS:
       log.debug(`op: status ${testStatus} received`);
-      if (testStatus === K.TEST_STATUS_STARTED)
+      if (testStatus === TEST_STATUS_STARTED)
         processCommand(state, command);
-      if (testStatus === K.TEST_STATUS_ENDED)
+      if (testStatus === TEST_STATUS_ENDED)
         terminateProcess('test completed', 0);
       break;
-    case K.OP_CHANNEL_STATUS:
+    case OP_CHANNEL_STATUS:
       processChannelStatus(state, source, channel, status);
       break;
     default:
@@ -105,7 +108,7 @@ const sendCmdCompleted = (state) => {
   const {syncMap, agtName} = context;
   const data = {
     source: agtName,
-    op: K.OP_PROGRESS,
+    op: OP_PROGRESS,
     command: command.id,
     status: 'test-completed',
     endTime: new Date()
@@ -118,7 +121,7 @@ const execStep = (state) => {
   const {client, host} = context;
   const step = steps[stepIdx];
   switch (step.action) {
-    case K.ACTION_DIAL:
+    case ACTION_DIAL:
       const {to, from, twiml} = step;
       dial(
         {client, from, to, twiml, statusCallback: `https://${host}/callstatus`}
@@ -127,10 +130,10 @@ const execStep = (state) => {
         state.callSid = call.sid;
       });
       return;
-    case K.ACTION_TWIML:
+    case ACTION_TWIML:
       log.debug(`execStep: TWIML faked`);
       return;
-    case K.ACTION_RELEASE:
+    case ACTION_RELEASE:
       release({client, callSid})
       .then(() => log.debug(`execStep: initiated release of call ${callSid}`))
       return;
@@ -140,8 +143,8 @@ const execStep = (state) => {
 };
 
 const execNextStep = (state) => {
-  if (state.stepStatus === K.STEP_STATUS_READY)
-    state.stepStatus = K.STEP_STATUS_STARTED;
+  if (state.stepStatus === STEP_STATUS_READY)
+    state.stepStatus = STEP_STATUS_STARTED;
   const step = state.steps[state.stepIdx];
   log.debug(`executing`, {step});
   delayedPromise(step.wait * 1000)
@@ -159,7 +162,7 @@ const dialStatusUpdate = (state, update) => {
       sendChannelStatus({syncMap, agtName, channel: 'voice', status: 'dialed'});
       break;
     case 'in-progress':
-      state.stepStatus = K.STEP_STATUS_ENDED;
+      state.stepStatus = STEP_STATUS_ENDED;
       break;
     default:
       break;
@@ -169,7 +172,7 @@ const dialStatusUpdate = (state, update) => {
 const releaseStatusUpdate = (state, update) => {
   switch (update.status) {
     case 'completed':
-      state.stepStatus = K.STEP_STATUS_ENDED;
+      state.stepStatus = STEP_STATUS_ENDED;
       startTimers(state, 'cust', 'voice', 'ended');
       break;
     default:
@@ -177,8 +180,8 @@ const releaseStatusUpdate = (state, update) => {
   }
 };
 
-const stepComplete = (state) => state.stepStatus === K.STEP_STATUS_ENDED;
-const cmdComplete = (state) => state.cmdStatus === K.CMD_STATUS_ENDED;
+const stepComplete = (state) => state.stepStatus === STEP_STATUS_ENDED;
+const cmdComplete = (state) => state.cmdStatus === CMD_STATUS_ENDED;
 
 // WARNING: impure: mutates state! I did this since Express callback is passed state
 // and I don't know how to pass it the latest copy of state
@@ -188,8 +191,8 @@ const setCmdInState = (state, command) => {
   state.command = command;
   state.steps = steps;
   state.stepIdx = 0;
-  state.stepStatus = K.STEP_STATUS_READY;
-  state.cmdStatus = K.CMD_STATUS_STARTED;
+  state.stepStatus = STEP_STATUS_READY;
+  state.cmdStatus = CMD_STATUS_STARTED;
 };
 
 const processCommand = (state, command) => {

@@ -8,11 +8,11 @@
 */
 import {log} from 'jlafer-flex-util';
 import {getSteps, updateHoldDur} from '../helpers';
+import {TEST_STATUS_NOTREADY} from 'flex-test-lib';
 import * as A from '../actions';
-import * as K from '../constants';
 
 const initialState = {
-  testStatus: K.TEST_STATUS_NOTREADY,
+  testStatus: TEST_STATUS_NOTREADY,
   parties: [],
   worker: null,
   syncMap: null,

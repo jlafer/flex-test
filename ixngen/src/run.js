@@ -1,8 +1,7 @@
 import * as R from 'ramda';
 import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
 import {
-  CHG_CHANNEL_STATUS, CHG_CLIENT_READY, CHG_END_COMMAND, CHG_END_PARTY, CHG_END_TEST,
-  CHG_START_TEST, CHG_STATS,
+  CHG_CHANNEL_STATUS, CHG_CLIENT_READY, CHG_END_COMMAND, CHG_END_PARTY, CHG_END_TEST, CHG_START_TEST, CHG_STATS,
   OP_PARTY_READY, OP_COMMAND, OP_CHANNEL_STATUS, OP_PROGRESS, OP_PARTY_STATS, OP_TEST_STATUS, OP_END,
   PARTY_STATUS_PENDING, PARTY_STATUS_READY, PARTY_STATUS_ENDED,
   TEST_STATUS_PENDING, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
@@ -21,18 +20,18 @@ import {
 } from './helpers';
 
 const log = logger.getInstance();
+let sendMsgToParties;
 
 const runFn = R.curry((config, files, args) => {
   prepareTestCommands(files, args)
-    .then(initData => executeTest(config, initData))
-    .then(initData => outputTestResults(args, initData))
+    .then(globalData => executeTest(config, globalData))
+    .then(globalData => outputTestResults(args, globalData))
     .catch(log.error);
 });
 
 async function prepareTestCommands(files, args) {
   const {indir, tests} = args;
-  log.debug(`prepareTestCommands: indir=${indir} tests=${tests}`);
-  const initData = {results: []};
+  const globalData = {results: []};
   // TODO support all files in array
   const testSuite = await readJsonFile(`${indir}/${files[0]}`);
   const selectedTests = (tests)
@@ -43,70 +42,64 @@ async function prepareTestCommands(files, args) {
   const valid = verifyAndFillDefaults(selectedTests);
   if (!valid)
     throw new Error('validation of test commands failed');
-  initData.testSuite = addOtherDefaults(selectedTests);
-  log.debug('prepareTestCommands: testSuite:', {testSuite: initData.testSuite});
-  return initData;
+  globalData.testSuite = addOtherDefaults(selectedTests);
+  log.info('prepareTestCommands: testSuite:', {testSuite: globalData.testSuite});
+  return globalData;
 }
 
-function executeTest(config, initData) {
+function executeTest(config, globalData) {
   const tokenResponse = generateSyncToken(config, 'ixngen');
-  initData.syncClient = getSyncClient({token: tokenResponse.token});
+  globalData.syncClient = getSyncClient({token: tokenResponse.token});
   subscribeToSyncMap({
-    client: initData.syncClient,
+    client: globalData.syncClient,
     id: 'TestSteps',
-    mapCallback: readyTheTest(initData),
-    itemCallback: syncMapUpdated(initData),
+    mapCallback: readyTheTest(globalData),
+    itemCallback: syncMapUpdated(globalData),
   });
-  return initData;
+  return globalData;
 }
 
-function outputTestResults(_args, initData) {
-  const {results} = initData;
-  log.debug('outputTestResults: ', {results});
+function outputTestResults(_args, globalData) {
+  const {results} = globalData;
   /* const {outdir} = args;
   const fd = await openFile(`${outdir}/ixngen-out.txt`, 'w');
   results.forEach(async test => {
-    log.debug('writing result: ', {test});
     await writeToFile(fd, `${test}\n`);
   }); */
 }
 
-const readyTheTest = R.curry((initData, map) => {
-  initData.syncMap = map;
+const readyTheTest = R.curry((globalData, syncMap) => {
+  globalData.syncMap = syncMap;
+  sendMsgToParties = mkSendMsgToParties({syncMap, ttl: 300})
   const data = {
     op: OP_TEST_STATUS, testStatus: TEST_STATUS_PENDING, source: 'ixngen'
   };
-  setSyncMapItem(map, 'all', data, 300);
-  initializeTestState(initData);
+  sendMsgToParties(data);
+  initializeTestState(globalData);
 });
 
-const syncMapUpdated = R.curry((initData, _map, args) => {
-  log.debug(`syncMapUpdated:`, {args});
+const syncMapUpdated = R.curry((globalData, _map, args) => {
   const {item, isLocal} = args;
   // ignore the messages this client sends or forwards
   if (isLocal)
     return;
-  log.debug(`syncMapUpdated:`, {item});
   // NOTE: 'descriptor' is not documented; perhaps this is bcos i'm using
   // the JS client SDK in Node.js, which may not be fully supported
   const {key, data} = item.descriptor;
-  log.debug(`syncMapUpdated: key=${key}:`, {data});
   if (data.source === 'ixngen')
     return;
-  processSyncMsgFromClient(initData, key, data);
+  processSyncMsgFromClient(globalData, key, data);
 });
 
-const processSyncMsgFromClient = async (initData, key, update) => {
-  const {testSuite, state} = initData;
+const processSyncMsgFromClient = async (globalData, key, update) => {
+  const {testSuite, state} = globalData;
   const change = getChangeToState(testSuite, state, key, update);
-  log.info('changeToState:', {change});
-  initData.state = {...initData.state, ...change.data};
-  log.info(`state after applying change ${change.type}:`, {state: initData.state});
-  respondToClientMsg(initData, change);
-  if (initData.state.testStatus === TEST_STATUS_ENDED) {
-    initData.syncMap.close();
+  globalData.state = {...globalData.state, ...change.data};
+  respondToClientMsg(globalData, change);
+  if (globalData.state.testStatus === TEST_STATUS_ENDED) {
+    globalData.syncMap.close();
     //TODO write out stats in CSV for easy comparison with Insights
-    log.info('STATS:', {stats: initData.state.stats});
+    log.info('STATS:', {stats: globalData.state.stats});
     terminateProcess('test completed', 0);
   }
 };
@@ -129,32 +122,24 @@ const getChangeToState = (testSuite, state, key, update) => {
   }
 };
 
-const respondToClientMsg = (initData, change) => {
-  const {state, syncMap} = initData;
+const respondToClientMsg = (globalData, change) => {
+  const {state, syncMap} = globalData;
   const {key, data} = getResponseToClientMsg(state, change);
   if (!! key)
-    setSyncMapItem(syncMap, key, data, 300);
-};
+    sendMsgToParties(data);
+  };
 
-// TODO make terminology consistent: start -> ready
 const getStateChangeFromClientReady = (testSuite, state, key, update) => {
   const party = {
     ...getParty(key, state.parties),
     status: PARTY_STATUS_READY,
     workerSid: update.workerSid
   };
-  log.debug('getStateChangeFromClientReady:', {party});
   const parties = replaceParty(state.parties, party);
-  log.debug('getStateChangeFromClientReady:', {parties});
-  const partiesAllStarted = R.all(
-    party => (party.status === PARTY_STATUS_READY),
-    parties
-  );
-  log.debug('getStateChangeFromClientReady:', {partiesAllStarted});
-  if (partiesAllStarted) {
+  const partiesAllReady = allPartiesReady(parties);
+  if (partiesAllReady) {
     const command = testSuite[0];
-    const cmdParties = R.map(R.prop('identity'), command.parties)
-      .map(identity => ({identity, status: PARTY_STATUS_READY}));
+    const cmdParties = makeReadyCmdParties(command.parties);
     return {
       type: CHG_START_TEST,
       command,
@@ -183,14 +168,13 @@ const getStateChangeFromProgress = (testSuite, state, key, update) => {
       party,
       data: {cmdParties}
     };
+  log.info(`completed command: ${testSuite[state.cmdIdx].id}`);
   const cmdIdx = state.cmdIdx + 1;
   const testStatus =
-    (cmdIdx == testSuite.length) ? TEST_STATUS_ENDED : 
-    TEST_STATUS_STARTED;
+    (cmdIdx == testSuite.length) ? TEST_STATUS_ENDED : TEST_STATUS_STARTED;
   if (testStatus === TEST_STATUS_STARTED) {
     const command = testSuite[cmdIdx];
-    cmdParties = R.map(R.prop('identity'), command.parties)
-      .map(identity => ({identity, status: PARTY_STATUS_READY}));
+    cmdParties = makeReadyCmdParties(command.parties);
     return {
       type: CHG_END_COMMAND,
       command,
@@ -244,6 +228,15 @@ const getResponseToClientMsg = (state, change) => {
           parties
         }
       };
+    case CHG_END_TEST:
+      return {
+        key: 'all',
+        data: {
+          op: OP_TEST_STATUS,
+          source: 'ixngen',
+          testStatus: TEST_STATUS_ENDED
+        }
+      };
     case CHG_END_COMMAND:
       return {
         key: 'all',
@@ -254,35 +247,25 @@ const getResponseToClientMsg = (state, change) => {
           parties
         }
       };
-    case CHG_END_TEST:
-      return {
-        key: 'all',
-        data: {
-          op: OP_TEST_STATUS,
-          source: 'ixngen',
-          testStatus: TEST_STATUS_ENDED
-        }
-      };
     case CHG_CHANNEL_STATUS:
     case CHG_CLIENT_READY:
     case CHG_END_PARTY:
     case CHG_STATS:
       return {};
     default:
-      log.debug(`applyChangeToState: unexpected type: ${type}`);
+      log.warn(`applyChangeToState: unexpected type: ${type}`);
       return {};
   }
 };
 
-const initializeTestState = (initData) => {
-  const partyIds = initData.testSuite.reduce(getCmdPartiesReducer, []);
-  log.debug('readyTheTest:', {partyIds});
+const initializeTestState = (globalData) => {
+  const partyIds = globalData.testSuite.reduce(getCmdPartiesReducer, []);
   const parties = partyIds.map((identity) => ({
     identity,
     status: PARTY_STATUS_PENDING,
     workerSid: null
   }));
-  initData.state = {
+  globalData.state = {
     testStatus: TEST_STATUS_PENDING,
     cmdIdx: -1,
     parties,
@@ -292,14 +275,28 @@ const initializeTestState = (initData) => {
 
 const replaceParty = replaceObjByKey('identity');
 
+const allPartiesReady = (parties) => R.all(
+  party => (party.status === PARTY_STATUS_READY),
+  parties
+);
+
 const allPartiesDone = (parties) => R.all(
   party => (party.status === PARTY_STATUS_ENDED),
   parties
 );
 
+const makeReadyCmdParties = (cmdParties) =>
+  R.map(R.prop('identity'), cmdParties)
+    .map(identity => ({identity, status: PARTY_STATUS_READY}))
+
 function getUserSelectedTests(testSuite, tests) {
   const testIds = tests.split(',');
   return testSuite.filter(test => testIds.includes(test.id));
 }
+
+const mkSendMsgToParties = ({syncMap, ttl}) =>
+  (data) => {
+    setSyncMapItem(syncMap, 'all', data, ttl);
+  };
 
 export default runFn;

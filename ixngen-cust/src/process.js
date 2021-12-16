@@ -16,14 +16,11 @@ import {dial, release} from './voice';
 export const syncMapUpdated = R.curry((state, _map, args) => {
   const {context} = state;
   const {agtName} = context;
-  log.debug(`syncMapUpdated:`, {args});
   const {item, isLocal} = args;
-  log.debug(`syncMapUpdated:`, {item});
   // ignore the messages this client sends
   if (isLocal)
     return;
   const {key, data} = item.descriptor;
-  log.debug(`syncMapUpdated: key=${key}`, {data});
   // ignore the messages not intended for this client
   if (! ['all', agtName].includes(key) )
     return;
@@ -38,13 +35,11 @@ export const startTest = R.curry((state, map) => {
   return setSyncMapItem(map, agtName, data, 300);
 });
 
-export const stepUpdate = (state, update) => {
+export const callStatusUpdate = (state, update) => {
   if (cmdComplete(state)) {
-    log.debug(`stepUpdate: ignoring update because command is complete`);
     return;
   }
   const step = state.steps[state.stepIdx];
-  log.debug(`stepUpdate: received status ${update.status} for`, {step});
   switch (step.action) {
     case ACTION_DIAL:
       dialStatusUpdate(state, update);
@@ -57,18 +52,14 @@ export const stepUpdate = (state, update) => {
   }
 
   if (stepComplete(state)) {
-    log.debug('stepUpdate: step is complete');
     const nextIdx = state.stepIdx + 1;
     const nextStep = (state.steps.length > nextIdx) ? state.steps[nextIdx] : null;
     if (nextStep) {
       state.stepIdx = nextIdx;
       state.stepStatus = STEP_STATUS_READY;
       if (! nextStep.after) {
-        log.debug('stepUpdate: it has no condition so will execute it')
         execNextStep(state);
       }
-      else
-        log.debug(`stepUpdate: it has a condition (${nextStep.after}) that we will wait on`);
     }
     else {
       sendCmdCompleted(state);
@@ -84,7 +75,6 @@ const processSyncMsgFromOtherParty = (state, data) => {
       processCommand(state, command);
       break;
     case OP_TEST_STATUS:
-      log.debug(`op: status ${testStatus} received`);
       if (testStatus === TEST_STATUS_STARTED)
         processCommand(state, command);
       // TODO i don't think we're getting this msg from ixngen
@@ -95,7 +85,7 @@ const processSyncMsgFromOtherParty = (state, data) => {
       processChannelStatus(state, source, channel, status);
       break;
     default:
-      log.debug(`processSyncMsgFromOtherParty: unexpected op received: ${op}?`);
+      log.warn(`processSyncMsgFromOtherParty: unexpected op received: ${op}?`);
   }
 }
 
@@ -132,14 +122,14 @@ const execStep = (state) => {
       });
       return;
     case ACTION_TWIML:
-      log.debug(`execStep: TWIML faked`);
+      log.warn(`execStep: TwiML support not yet implemented!`);
       return;
     case ACTION_RELEASE:
       release({client, callSid})
       .then(() => log.debug(`execStep: initiated release of call ${callSid}`))
       return;
     default:
-      log.debug(`execStep: unexpected action??`);
+      log.warn(`execStep: unexpected action??`);
   }
 };
 
@@ -147,7 +137,6 @@ const execNextStep = (state) => {
   if (state.stepStatus === STEP_STATUS_READY)
     state.stepStatus = STEP_STATUS_STARTED;
   const step = state.steps[state.stepIdx];
-  log.debug(`executing`, {step});
   delayedPromise(step.wait * 1000)
   .then(
     () => execStep(state)
@@ -218,7 +207,6 @@ const startTimers = (state, source, channel, status) => {
   const sourceAndEvent = `${source}.${status}`;
   const waitingSteps = steps.filter(step => step.after === sourceAndEvent);
   waitingSteps.forEach(step => {
-    log.debug(`startTimers: found step that will wait on ${sourceAndEvent}:`, step);
     scheduleStep(state, step);
   });
 };

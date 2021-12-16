@@ -11,17 +11,13 @@ import logger from './logUtil';
 const log = logger.getInstance();
 
 import {generateSyncToken, getSyncClient, subscribeToSyncMap} from 'flex-test-lib';
-import {syncMapUpdated, startTest, stepUpdate} from './process';
-
-log.debug(`TWILIO_ACCOUNT_SID = ${TWILIO_ACCOUNT_SID}`);
+import {syncMapUpdated, startTest, callStatusUpdate} from './process';
 
 const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
 const context = {agtName: 'cust', client, host: IXNGEN_CUST_HOST, port: IXNGEN_CUST_PORT};
 const state = {context};
 const tokenResponse = generateSyncToken(config, 'cust');
 const syncClient = getSyncClient({token: tokenResponse.token});
-log.debug(`got sync client`);
 subscribeToSyncMap({
   client: syncClient,
   id: 'TestSteps',
@@ -39,7 +35,7 @@ app.get('/', function (req, res) {
 
 const callStatusHandler = R.curry((state, req, res) => {
   const {CallSid, CallStatus} = req.body;
-  log.debug(`statusCallback: received ${CallStatus} for call ${CallSid}`);
+  //log.debug(`statusCallback: received ${CallStatus} for call ${CallSid}`);
   switch (CallStatus) {
     case 'initiated':
     case 'ringing':
@@ -47,10 +43,10 @@ const callStatusHandler = R.curry((state, req, res) => {
     case 'in-progress':
     case 'completed':
       const update = {status: CallStatus};
-      stepUpdate(state, update)
+      callStatusUpdate(state, update)
       break;
     default:
-      log.debug(`statusCallback: ignoring CallStatus ${CallStatus}`);
+      log.warn(`statusCallback: ignoring CallStatus ${CallStatus}`);
   };
   res.status(204);
 });

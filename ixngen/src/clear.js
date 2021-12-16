@@ -9,7 +9,6 @@ async function init(args) {
 
 async function execute(initData) {
   const {client, syncSvcSid, syncMap} = initData;
-  log.debug('execute: syncMap: ', {syncMap});
   try {
     await removeSyncMap(client, syncSvcSid, syncMap);
     log.info('sync map removed');

@@ -1,3 +1,7 @@
+/*
+  This appears to be a set of helper functions for the Sync NodeJS SDK.
+  Should probably move this to a library.
+*/
 import * as R from 'ramda';
 import logger from './logUtil';
 const log = logger.getInstance();
@@ -51,14 +55,13 @@ export function updateSyncMapItem(client, svcSid, syncMapSid, key, data) {
 }
 
 export function setSyncMapItem(client, svcSid, syncMapSid, item) {
-  log.debug('setSyncMapItem: setting item: ', item);
   return updateSyncMapItem(client, svcSid, syncMapSid, item.key, R.dissoc(['key'], item))
   .catch(err => {
-    log.debug('setSyncMapItem: update failed with:', err);
+    log.error('setSyncMapItem: update failed with:', err);
     return createSyncMapItem(client, svcSid, syncMapSid, item);
   })
   .catch(err => {
-    log.debug('setSyncMapItem: create failed with:', err);
+    log.error('setSyncMapItem: create failed with:', err);
     return err;
   })
 }

@@ -1,7 +1,7 @@
 import * as R from 'ramda';
 import {
-  ACTION_DIAL, ACTION_RELEASE, ACTION_TWIML, OP_START, OP_COMMAND,
-  OP_CHANNEL_STATUS, OP_PROGRESS, OP_STATUS,
+  ACTION_DIAL, ACTION_RELEASE, ACTION_TWIML, OP_PARTY_READY, OP_COMMAND,
+  OP_CHANNEL_STATUS, OP_PROGRESS, OP_TEST_STATUS,
   CMD_STATUS_STARTED, CMD_STATUS_ENDED, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
   STEP_STATUS_READY, STEP_STATUS_STARTED, STEP_STATUS_ENDED,
   getParty, sendChannelStatus, setSyncMapItem, terminateProcess
@@ -34,7 +34,7 @@ export const startTest = R.curry((state, map) => {
   const {context} = state;
   const {agtName} = context;
   context.syncMap = map;
-  const data = {source: agtName, op: OP_START, startTime: new Date()};
+  const data = {source: agtName, op: OP_PARTY_READY, startTime: new Date()};
   return setSyncMapItem(map, agtName, data, 300);
 });
 
@@ -83,7 +83,7 @@ const processSyncMsgFromOtherParty = (state, data) => {
     case OP_COMMAND:
       processCommand(state, command);
       break;
-    case OP_STATUS:
+    case OP_TEST_STATUS:
       log.debug(`op: status ${testStatus} received`);
       if (testStatus === TEST_STATUS_STARTED)
         processCommand(state, command);

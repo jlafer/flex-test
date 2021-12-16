@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import {setSyncMapItem} from 'jlafer-flex-util';
-import {OP_STATS, OP_CHANNEL_STATUS, OP_PROGRESS} from 'flex-test-lib';
+import {OP_PARTY_STATS, OP_CHANNEL_STATUS, OP_PROGRESS} from 'flex-test-lib';
 
 export const getSteps = (command, agtName) => {
   const party = command.parties.find(party => party.identity === agtName);
@@ -18,7 +18,7 @@ export const getTargetSid = (state, targetType, targetName) => {
 };
 
 export const sendPartyStats = ({syncMap, agtName, cmdId, stats}) => {
-  const data = {op: OP_STATS, command: cmdId, stats, source: agtName}
+  const data = {op: OP_PARTY_STATS, command: cmdId, stats, source: agtName}
   setSyncMapItem(syncMap, agtName, data, 300);
 };
 

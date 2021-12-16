@@ -34,7 +34,7 @@ export const CHG_STATS = 'CHG_STATS';
 // operations
 
 // sent by parties when ready to run test
-export const OP_START = 'START';
+export const OP_PARTY_READY = 'PARTY_READY';
 // sent by ixngen to parties, to run a test command
 export const OP_COMMAND = 'COMMAND';
 // sent by Flex party to other parties, indicating change of device or ixn status
@@ -43,9 +43,9 @@ export const OP_CHANNEL_STATUS = 'CHANNEL_STATUS';
 // sent by parties, indicating command progress (currently only command completion)
 export const OP_PROGRESS = 'PROGRESS';
 // sent by ixngen to parties, indicating changes in TEST_STATUS
-export const OP_STATUS = 'STATUS';
+export const OP_TEST_STATUS = 'TEST_STATUS';
 // sent by Flex party to ixngen, providing stats from previous command
-export const OP_STATS = 'STATS';
+export const OP_PARTY_STATS = 'PARTY_STATS';
 // currently not used
 export const OP_NONE = 'NONE';
 // looks like I meant for this to be sent by parties to ixngen if they need to end the test early
@@ -56,7 +56,7 @@ export const OP_END = 'END';
   test status
 
   These are used in two ways:
-  1) sent by ixngen in OP_STATUS msgs to all clients
+  1) sent by ixngen in OP_TEST_STATUS msgs to all clients
   2) ixngen uses it to manage the state of the test run
 */
 // set when ixngen starts up; waiting for all parties to indicate readiness
@@ -75,9 +75,9 @@ export const TEST_STATUS_ENDED = 'ENDED';
 // waiting on party to indicate readiness
 export const PARTY_STATUS_PENDING = 'PENDING';
 // party has indicated readiness
-export const PARTY_STATUS_STARTED = 'STARTED';
+export const PARTY_STATUS_READY = 'READY';
 // party has sent OP_PROGRESS msg, indicating its completion of the current command
-// reset to STARTED when next command is started by ixngen
+// reset to READY when next command is started by ixngen
 export const PARTY_STATUS_ENDED = 'ENDED';
 
 /*
@@ -96,7 +96,7 @@ export const CMD_STATUS_ENDED = 'ENDED';
   step status
 
   only used by ixngen-cust to track state
-  tracks the status of each command step
+  tracks the status of the current command step
 */
 // the current command step is ready to be executed
 export const STEP_STATUS_READY = 'READY';

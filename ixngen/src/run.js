@@ -3,8 +3,8 @@ import {openFile, readJsonFile, writeToFile} from 'jlafer-node-util';
 import {
   CHG_CHANNEL_STATUS, CHG_CLIENT_READY, CHG_END_COMMAND, CHG_END_PARTY, CHG_END_TEST,
   CHG_START_TEST, CHG_STATS,
-  OP_START, OP_COMMAND, OP_CHANNEL_STATUS, OP_PROGRESS, OP_STATS, OP_STATUS, OP_END,
-  PARTY_STATUS_PENDING, PARTY_STATUS_STARTED, PARTY_STATUS_ENDED,
+  OP_PARTY_READY, OP_COMMAND, OP_CHANNEL_STATUS, OP_PROGRESS, OP_PARTY_STATS, OP_TEST_STATUS, OP_END,
+  PARTY_STATUS_PENDING, PARTY_STATUS_READY, PARTY_STATUS_ENDED,
   TEST_STATUS_PENDING, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
   generateSyncToken, getSyncClient, setSyncMapItem, subscribeToSyncMap,
   getParty, terminateProcess
@@ -74,7 +74,7 @@ function outputTestResults(_args, initData) {
 const readyTheTest = R.curry((initData, map) => {
   initData.syncMap = map;
   const data = {
-    op: OP_STATUS, testStatus: TEST_STATUS_PENDING, source: 'ixngen'
+    op: OP_TEST_STATUS, testStatus: TEST_STATUS_PENDING, source: 'ixngen'
   };
   setSyncMapItem(map, 'all', data, 300);
   initializeTestState(initData);
@@ -114,7 +114,7 @@ const processSyncMsgFromClient = async (initData, key, update) => {
 const getChangeToState = (testSuite, state, key, update) => {
   const {op} = update;
   switch (op) {
-    case OP_START:
+    case OP_PARTY_READY:
       return getStateChangeFromClientReady(testSuite, state, key, update);
     case OP_CHANNEL_STATUS:
       return getStateChangeFromChannelStatus(state, key, update);
@@ -122,7 +122,7 @@ const getChangeToState = (testSuite, state, key, update) => {
       return getStateChangeFromProgress(testSuite, state, key, update);
     case OP_END:
       return {...state, testStatus: TEST_STATUS_ENDED};
-    case OP_STATS:
+    case OP_PARTY_STATS:
       return getStateChangeFromStats(state.stats, key, update);
     default:
       return state;
@@ -140,21 +140,21 @@ const respondToClientMsg = (initData, change) => {
 const getStateChangeFromClientReady = (testSuite, state, key, update) => {
   const party = {
     ...getParty(key, state.parties),
-    status: PARTY_STATUS_STARTED,
+    status: PARTY_STATUS_READY,
     workerSid: update.workerSid
   };
   log.debug('getStateChangeFromClientReady:', {party});
   const parties = replaceParty(state.parties, party);
   log.debug('getStateChangeFromClientReady:', {parties});
   const partiesAllStarted = R.all(
-    party => (party.status === PARTY_STATUS_STARTED),
+    party => (party.status === PARTY_STATUS_READY),
     parties
   );
   log.debug('getStateChangeFromClientReady:', {partiesAllStarted});
   if (partiesAllStarted) {
     const command = testSuite[0];
     const cmdParties = R.map(R.prop('identity'), command.parties)
-      .map(identity => ({identity, status: PARTY_STATUS_STARTED}));
+      .map(identity => ({identity, status: PARTY_STATUS_READY}));
     return {
       type: CHG_START_TEST,
       command,
@@ -190,7 +190,7 @@ const getStateChangeFromProgress = (testSuite, state, key, update) => {
   if (testStatus === TEST_STATUS_STARTED) {
     const command = testSuite[cmdIdx];
     cmdParties = R.map(R.prop('identity'), command.parties)
-      .map(identity => ({identity, status: PARTY_STATUS_STARTED}));
+      .map(identity => ({identity, status: PARTY_STATUS_READY}));
     return {
       type: CHG_END_COMMAND,
       command,
@@ -237,7 +237,7 @@ const getResponseToClientMsg = (state, change) => {
       return {
         key: 'all',
         data: {
-          op: OP_STATUS,
+          op: OP_TEST_STATUS,
           source: 'ixngen',
           testStatus: TEST_STATUS_STARTED,
           command,
@@ -258,7 +258,7 @@ const getResponseToClientMsg = (state, change) => {
       return {
         key: 'all',
         data: {
-          op: OP_STATUS,
+          op: OP_TEST_STATUS,
           source: 'ixngen',
           testStatus: TEST_STATUS_ENDED
         }

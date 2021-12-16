@@ -5,7 +5,7 @@ import * as R from 'ramda';
 import {log, getSyncClientAndMap} from 'jlafer-flex-util';
 //import * as K from './constants';
 import {
-  OP_COMMAND, OP_CHANNEL_STATUS, OP_STATUS, TEST_STATUS_STARTED
+  OP_COMMAND, OP_CHANNEL_STATUS, OP_TEST_STATUS, TEST_STATUS_STARTED
 } from 'flex-test-lib';
 
 import reducer, {namespace} from './reducers/flexStoreReducer';
@@ -186,7 +186,7 @@ const syncMapUpdated = R.curry((flex, manager, myStore, event) => {
     case OP_CHANNEL_STATUS:
       processEvent(flex, myStore, source, channel, status);
       break;
-    case OP_STATUS:
+    case OP_TEST_STATUS:
       //log.debug('INFO: op: testStatus received');
       myStore.dispatch({type: A.TEST_STATUS_CHANGE, payload: {testStatus, parties}});
       if (testStatus === TEST_STATUS_STARTED)

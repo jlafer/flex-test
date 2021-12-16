@@ -87,6 +87,7 @@ const processSyncMsgFromOtherParty = (state, data) => {
       log.debug(`op: status ${testStatus} received`);
       if (testStatus === TEST_STATUS_STARTED)
         processCommand(state, command);
+      // TODO i don't think we're getting this msg from ixngen
       if (testStatus === TEST_STATUS_ENDED)
         terminateProcess('test completed', 0);
       break;
@@ -183,6 +184,17 @@ const releaseStatusUpdate = (state, update) => {
 const stepComplete = (state) => state.stepStatus === STEP_STATUS_ENDED;
 const cmdComplete = (state) => state.cmdStatus === CMD_STATUS_ENDED;
 
+const processCommand = (state, command) => {
+  const {context} = state;
+  const {agtName} = context;
+  const party = getParty(agtName, command.parties);
+  // if we're not a party to this command, ignore it
+  if (party == null)
+    return;
+  setCmdInState(state, command);
+  execNextStep(state);
+};
+
 // WARNING: impure: mutates state! I did this since Express callback is passed state
 // and I don't know how to pass it the latest copy of state
 const setCmdInState = (state, command) => {
@@ -193,17 +205,6 @@ const setCmdInState = (state, command) => {
   state.stepIdx = 0;
   state.stepStatus = STEP_STATUS_READY;
   state.cmdStatus = CMD_STATUS_STARTED;
-};
-
-const processCommand = (state, command) => {
-  const {context} = state;
-  const {agtName} = context;
-  const party = getParty(agtName, command.parties);
-  // if we're not a party to this command, ignore it
-  if (party == null)
-    return;
-  setCmdInState(state, command);
-  execNextStep(state);
 };
 
 const scheduleStep = (state, step) => {

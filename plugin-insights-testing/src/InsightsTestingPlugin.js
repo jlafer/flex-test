@@ -44,7 +44,7 @@ const savePartyData = (myStore, task, result, completeTS) => {
   updateTaskConversations(task, {[testNameAttribute]: command.id});
 };
 
-export const startTimersAndTellIxngen = (flex, myStore, channel, status) => {
+export const startCmdTimersAndTellOtherParties = (flex, myStore, channel, status) => {
   const state = myStore.getState().testingData;
   const {syncMap, agtName} = state;
 
@@ -64,20 +64,20 @@ const onReservationCreated = R.curry((flex, manager, myStore, reservation) => {
   reservation.on("wrapup", onReservationWrapup(flex, myStore));
   reservation.on("completed", onReservationCompleted(flex, manager, myStore));
   const channel = reservation.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'alerted')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'alerted')
 });
 
 const onReservationCanceled = R.curry((flex, manager, myStore, reservation) => {
   const channel = reservation.task.taskChannelUniqueName;
 
-  startTimersAndTellIxngen(flex, myStore, channel, 'canceled')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'canceled')
   savePartyData(myStore, reservation.task, 'canceled', new Date());
 });
 
 const onReservationRescinded = R.curry((flex, manager, myStore, reservation) => {
   const channel = reservation.task.taskChannelUniqueName;
 
-  startTimersAndTellIxngen(flex, myStore, channel, 'rescinded')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'rescinded')
   savePartyData(myStore, reservation.task, 'rescinded', new Date());
 });
 
@@ -87,7 +87,7 @@ const onReservationWrapup = R.curry((flex, myStore, reservation) => {
   myStore.dispatch({type: A.END_HOLD, payload: {ts}});
   myStore.dispatch({type: A.END_TASK, payload: {ts}});
   const channel = reservation.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'ended')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'ended')
 });
 
 const onReservationCompleted = R.curry((flex, manager, myStore, reservation) => {
@@ -96,13 +96,13 @@ const onReservationCompleted = R.curry((flex, manager, myStore, reservation) => 
   myStore.dispatch({type: A.COMPLETE_TASK, payload: {}});
   manager.store.dispatch({type: A.COMPLETE_TASK, payload: {}});
   const channel = reservation.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'completed')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'completed')
 });
 
 const beforeRejectTask = R.curry((flex, manager, myStore, payload) => {
   const channel = payload.task.taskChannelUniqueName;
 
-  startTimersAndTellIxngen(flex, myStore, channel, 'rejected')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'rejected')
   savePartyData(myStore, payload.task, 'rejected', new Date());
 });
 
@@ -112,19 +112,19 @@ const afterAcceptTask = R.curry((flex, myStore, payload) => {
   //log.debug('afterAcceptTask: conference:', payload.task.conference);
   myStore.dispatch({type: A.ACCEPT_TASK, payload: {acceptTS: new Date()}});
   const channel = payload.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'accepted');
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'accepted');
 });
 
 const beforeHoldCall = R.curry((flex, myStore, payload, _abortFn) => {
   myStore.dispatch({type: A.START_HOLD, payload: {ts: new Date()}});
   const channel = payload.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'held')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'held')
 });
 
 const beforeUnholdCall = R.curry((flex, myStore, payload, _abortFn) => {
   myStore.dispatch({type: A.END_HOLD, payload: {ts: new Date()}});
   const channel = payload.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'retrieved')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'retrieved')
 });
 
 const beforeTransferTask = R.curry((flex, myStore, _payload) => {
@@ -146,7 +146,7 @@ const afterTransferTask = R.curry((flex, myStore, _payload) => {
 const beforeCancelTransfer = R.curry((flex, myStore, payload) => {
   myStore.dispatch({type: A.CANCEL_TRANSFER, payload: {}});
   const channel = payload.task.taskChannelUniqueName;
-  startTimersAndTellIxngen(flex, myStore, channel, 'transfer-canceled')
+  startCmdTimersAndTellOtherParties(flex, myStore, channel, 'transfer-canceled')
 });
 
 const processEvent = (flex, myStore, source, channel, status) => {

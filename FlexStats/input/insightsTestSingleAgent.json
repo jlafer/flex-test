@@ -58,14 +58,14 @@
           {"action": "dial", "from": "+16292091380", "to": "+15072747105",
             "twiml": "<Response><Pause length=\"8\"/><Play digits=\"1\"/><Pause length=\"300\"/><Say>Call should have ended by now.</Say></Response>"
           },
-          {"action": "release", "after": "agt1.accepted", "wait": 20}
+          {"action": "release", "after": "agt1.accepted", "wait": 10}
         ]
       },
       {
         "identity": "agt1",
         "steps": [
-          {"action": "accept", "after": "alerted", "wait": 3},
-          {"action": "complete", "after": "ended", "wait": 5}
+          {"action": "accept", "after": "alerted", "wait": 2},
+          {"action": "complete", "after": "ended", "wait": 3}
         ]
       }
     ]

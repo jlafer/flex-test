@@ -1,7 +1,6 @@
 import 'source-map-support/register';
 import express from 'express';
 import {urlencoded} from 'body-parser';
-import * as R from 'ramda';
 
 import config from './cfgEnv';
 console.log('config:', config);
@@ -11,7 +10,8 @@ import logger from './logUtil';
 const log = logger.getInstance();
 
 import {generateSyncToken, getSyncClient, subscribeToSyncMap} from 'flex-test-lib';
-import {syncMapUpdated, startTest, callStatusUpdate} from './process';
+import {callStatusHandler} from './callStatusUpdate';
+import {syncMapUpdated, startTest} from './process';
 
 const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 const context = {agtName: 'cust', client, host: IXNGEN_CUST_HOST, port: IXNGEN_CUST_PORT};
@@ -31,24 +31,6 @@ log.info('started express app');
 
 app.get('/', function (req, res) {
   res.send('Hello World!');
-});
-
-const callStatusHandler = R.curry((state, req, res) => {
-  const {CallSid, CallStatus} = req.body;
-  //log.debug(`statusCallback: received ${CallStatus} for call ${CallSid}`);
-  switch (CallStatus) {
-    case 'initiated':
-    case 'ringing':
-    case 'answered':
-    case 'in-progress':
-    case 'completed':
-      const update = {status: CallStatus};
-      callStatusUpdate(state, update)
-      break;
-    default:
-      log.warn(`statusCallback: ignoring CallStatus ${CallStatus}`);
-  };
-  res.status(204);
 });
 
 app.post('/callstatus', callStatusHandler(state));

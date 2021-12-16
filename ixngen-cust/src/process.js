@@ -1,10 +1,10 @@
 import * as R from 'ramda';
 import {
   ACTION_DIAL, ACTION_RELEASE, ACTION_TWIML, OP_PARTY_READY, OP_COMMAND,
-  OP_CHANNEL_STATUS, OP_PROGRESS, OP_TEST_STATUS,
-  CMD_STATUS_STARTED, CMD_STATUS_ENDED, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
-  STEP_STATUS_READY, STEP_STATUS_STARTED, STEP_STATUS_ENDED,
-  getParty, sendChannelStatus, setSyncMapItem, terminateProcess
+  OP_CHANNEL_STATUS, OP_TEST_STATUS,
+  CMD_STATUS_STARTED, TEST_STATUS_STARTED, TEST_STATUS_ENDED,
+  STEP_STATUS_READY, STEP_STATUS_STARTED,
+  getParty, setSyncMapItem, terminateProcess
 } from 'flex-test-lib';
 
 import logger from './logUtil';
@@ -35,39 +35,6 @@ export const startTest = R.curry((state, map) => {
   return setSyncMapItem(map, agtName, data, 300);
 });
 
-export const callStatusUpdate = (state, update) => {
-  if (cmdComplete(state)) {
-    return;
-  }
-  const step = state.steps[state.stepIdx];
-  switch (step.action) {
-    case ACTION_DIAL:
-      dialStatusUpdate(state, update);
-      break;
-    case ACTION_RELEASE:
-      releaseStatusUpdate(state, update);
-      break;
-    default:
-      break;
-  }
-
-  if (stepComplete(state)) {
-    const nextIdx = state.stepIdx + 1;
-    const nextStep = (state.steps.length > nextIdx) ? state.steps[nextIdx] : null;
-    if (nextStep) {
-      state.stepIdx = nextIdx;
-      state.stepStatus = STEP_STATUS_READY;
-      if (! nextStep.after) {
-        execNextStep(state);
-      }
-    }
-    else {
-      sendCmdCompleted(state);
-      state.cmdStatus = CMD_STATUS_ENDED;
-    }
-  }
-}
-
 const processSyncMsgFromOtherParty = (state, data) => {
   const {source, op, command, step, channel, status, testStatus} = data;
   switch (op) {
@@ -92,19 +59,6 @@ const processSyncMsgFromOtherParty = (state, data) => {
 const getSteps = (agtName, command) => {
   const party = getParty(agtName, command.parties);
   return (party) ? party.steps : null;
-};
-
-const sendCmdCompleted = (state) => {
-  const {context, command, stepIdx} = state;
-  const {syncMap, agtName} = context;
-  const data = {
-    source: agtName,
-    op: OP_PROGRESS,
-    command: command.id,
-    status: 'test-completed',
-    endTime: new Date()
-  };
-  return setSyncMapItem(syncMap, agtName, data, 300);
 };
 
 const execStep = (state) => {
@@ -133,7 +87,7 @@ const execStep = (state) => {
   }
 };
 
-const execNextStep = (state) => {
+export const execNextStep = (state) => {
   if (state.stepStatus === STEP_STATUS_READY)
     state.stepStatus = STEP_STATUS_STARTED;
   const step = state.steps[state.stepIdx];
@@ -142,36 +96,6 @@ const execNextStep = (state) => {
     () => execStep(state)
   )
 };
-
-const dialStatusUpdate = (state, update) => {
-  const {context} = state;
-  const {agtName, syncMap} = context;
-  switch (update.status) {
-    case 'ringing':
-      startTimers(state, 'cust', 'voice', 'dialed');
-      sendChannelStatus({syncMap, agtName, channel: 'voice', status: 'dialed'});
-      break;
-    case 'in-progress':
-      state.stepStatus = STEP_STATUS_ENDED;
-      break;
-    default:
-      break;
-  }
-};
-
-const releaseStatusUpdate = (state, update) => {
-  switch (update.status) {
-    case 'completed':
-      state.stepStatus = STEP_STATUS_ENDED;
-      startTimers(state, 'cust', 'voice', 'ended');
-      break;
-    default:
-      break;
-  }
-};
-
-const stepComplete = (state) => state.stepStatus === STEP_STATUS_ENDED;
-const cmdComplete = (state) => state.cmdStatus === CMD_STATUS_ENDED;
 
 const processCommand = (state, command) => {
   const {context} = state;
@@ -202,7 +126,7 @@ const scheduleStep = (state, step) => {
     .then(() => execStep(state))
 };
 
-const startTimers = (state, source, channel, status) => {
+export const startTimers = (state, source, channel, status) => {
   const {steps} = state;
   const sourceAndEvent = `${source}.${status}`;
   const waitingSteps = steps.filter(step => step.after === sourceAndEvent);
